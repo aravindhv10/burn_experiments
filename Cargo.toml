@@ -1,0 +1,9 @@
+[package]
+name = "burn_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cubecl-hip-sys = { version = "6.4.4348201", features = [] }
+cubecl = { version = "0.6.0", features = ["cubecl-hip"] }
+# burn = { version = "0.18.0", features = ["burn-rocm", "vulkan"] }
