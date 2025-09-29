@@ -1,5 +1,5 @@
-# FROM rocm/dev-ubuntu-24.04:7.0-complete
-FROM rocm/dev-ubuntu-24.04:6.4.4-complete
+FROM rocm/dev-ubuntu-24.04:7.0-complete
+# FROM rocm/dev-ubuntu-24.04:6.4.4-complete
 USER root
 WORKDIR '/root'
 
