@@ -4,4 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-burn = { version = "0.18.0", features = ["wgpu"] }
+burn = { version = "0.18.0", features = ["wgpu", "ndarray", "dataset", "vision"] }
+serde = { version = "1.0.228", features = ["derive"] }
+
+[build-dependencies]
+burn-import = { version = "0.18.0", features = ["onnx"] }
