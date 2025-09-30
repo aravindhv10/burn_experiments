@@ -22,8 +22,10 @@
         multiprocess
         numpy
         onnx
+        onnxconverter-common
+        onnxmltools
         onnxruntime
-        onnxscript
+        onnxruntime-tools
         opencv-python
         pillow
         python-multipart
@@ -48,3 +50,4 @@ in
     runScript = "fish";
   })
 .env
+
