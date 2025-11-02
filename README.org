@@ -1,0 +1,339 @@
+* Functions for using
+
+** Primitive functions
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  P_TOUCH(){
+      test -e "./${1}" || touch "./${1}"
+  }
+
+  P_GITADD(){
+      git add "./${1}"
+  }
+
+  P_MKDIR(){
+      mkdir -pv -- "./${1}"
+  }
+
+  P_CLEAN(){
+      rm -vf -- "./${1}"
+  }
+#+end_src
+
+** Compound functions
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G(){
+      P_TOUCH "${1}"
+      P_GITADD "${1}"
+  }
+#+end_src
+
+** Clean the working file
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  P_CLEAN './.git.sh'
+#+end_src
+
+** Add this file
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'README.org'
+#+end_src
+
+* Cargo.toml
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'Cargo.toml'
+#+end_src
+
+** Actual file
+#+begin_src toml :tangle ./Cargo.toml
+  [package]
+  name = "burn_test"
+  version = "0.1.0"
+  edition = "2024"
+
+  [dependencies]
+  tch = { version = "0.22.0", path = "../../LaurentMazare/tch-rs", features = ["cpython", "memmap2"] }
+#+end_src
+
+* build.rs
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'build.rs'
+#+end_src
+
+** Actual file
+#+begin_src rust :tangle ./build.rs
+  fn main() {
+      let os = std::env::var("CARGO_CFG_TARGET_OS").expect("Unable to get TARGET_OS");
+      match os.as_str() {
+          "linux" | "windows" => {
+              if let Some(lib_path) = std::env::var_os("DEP_TCH_LIBTORCH_LIB") {
+                  println!("cargo:rustc-link-arg=-Wl,-rpath={}", lib_path.to_string_lossy());
+              }
+              println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
+              println!("cargo:rustc-link-arg=-ltorch");
+          }
+          _ => {}
+      }
+  }
+#+end_src
+
+
+* Python file to produce the model file
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'main.py'
+#+end_src
+
+** Actual file
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :tangle ./main.py
+  import os
+
+  try:
+      __file__
+  except:
+      basepath = "."
+  else:
+      basepath = os.path.abspath(os.path.dirname(__file__) + "/")
+  import sys
+
+  sys.path.append(basepath)
+  INPUT_SIZE = 100
+  BATCH_SIZE = 4
+  import einops
+  import timm
+  import torch
+
+
+  def export_to_dynamo(path_file_out):
+      model = model_wrapper()
+      model = torch.compile(
+          model=model,
+          fullgraph=True,
+          dynamic=True,
+          backend="inductor",
+          mode="max-autotune",
+      )
+      x = torch.rand(
+          (BATCH_SIZE, INPUT_SIZE),
+          dtype=torch.float32,
+      )
+      y = model(x)
+      exported_module = torch.export.export(
+          mod=model,
+          args=(x,),
+          strict=True,
+      )
+      torch.export.save(exported_module, path_file_out)
+
+
+  def export_to_onnx(path_file_out):
+      model = model_wrapper()
+      model = torch.compile(
+          model=model,
+          fullgraph=True,
+          dynamic=True,
+          backend="inductor",
+          mode="max-autotune",
+      )
+      x = torch.rand(
+          (BATCH_SIZE, INPUT_SIZE),
+          dtype=torch.float32,
+      )
+      y = model(x)
+      res = torch.onnx.export(
+          slave,
+          x,
+          path_file_out,
+          input_names="x",
+          output_names="y",
+          opset_version=23,
+          dynamo=True,
+          external_data=True,
+      )
+
+
+  class model_wrapper(torch.nn.Module):
+      def __init__(self):
+          super().__init__()
+          self.L1 = torch.nn.Linear(
+              in_features=INPUT_SIZE,
+              out_features=4,
+              bias=True,
+              dtype=torch.float32,
+          )
+
+      def forward(self, x):
+          x = self.L1(x)
+          return x
+
+
+  export_to_dynamo(path_file_out="out.pt2")
+#+end_src
+
+* Script to run
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'run.sh'
+#+end_src
+
+** Actual file
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
+  cd "$(dirname -- "${0}")"
+  export LIBTORCH_USE_PYTORCH=1
+  export LIBTORCH_BYPASS_VERSION_CHECK=1
+  cargo run
+#+end_src
+
+* Dockerfile
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'buildah_build.sh'
+  G 'Dockerfile'
+  G 'podman_run.sh'
+  G '.zshrc'
+#+end_src
+
+** Script to build the image
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./buildah_build.sh
+  buildah build -t rust_tch_rs .
+#+end_src
+
+** Run the image
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./podman_run.sh
+  podman run -it --rm rust_tch_rs zsh
+#+end_src
+
+** Dockerfile
+
+*** Base image
+#+begin_src conf :tangle ./Dockerfile
+  FROM debian:testing-backports
+#+end_src
+
+*** ENV stuff
+#+begin_src conf :tangle ./Dockerfile
+  USER root
+  WORKDIR '/root'
+  ENV HOME='/root'
+  ENV RUSTUP_HOME=/usr/local/rustup
+  ENV CARGO_HOME=/usr/local/cargo
+  ENV PATH=/usr/local/cargo/bin:$PATH
+  ENV RUST_VERSION=1.91.0
+  ENV DEBIAN_FRONTEND='noninteractive'
+#+end_src
+
+*** Installing rust
+#+begin_src conf :tangle ./Dockerfile
+  RUN \
+      --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+      --mount=target=/var/cache/apt,type=cache,sharing=locked \
+      echo 'START apt-get stuff' \
+      && apt-get -y update \
+      && apt-get install -y \
+          'aria2' \
+          'curl' \
+          'wget' \
+      && echo 'DONE apt-get stuff' ;
+
+  RUN set -eux; \
+      arch="$(dpkg --print-architecture)"; \
+      case "$arch" in \
+          'amd64') \
+              rustArch='x86_64-unknown-linux-gnu'; \
+              rustupSha256='20a06e644b0d9bd2fbdbfd52d42540bdde820ea7df86e92e533c073da0cdd43c'; \
+              ;; \
+          'armhf') \
+              rustArch='armv7-unknown-linux-gnueabihf'; \
+              rustupSha256='3b8daab6cc3135f2cd4b12919559e6adaee73a2fbefb830fadf0405c20231d61'; \
+              ;; \
+          'arm64') \
+              rustArch='aarch64-unknown-linux-gnu'; \
+              rustupSha256='e3853c5a252fca15252d07cb23a1bdd9377a8c6f3efa01531109281ae47f841c'; \
+              ;; \
+          'i386') \
+              rustArch='i686-unknown-linux-gnu'; \
+              rustupSha256='a5db2c4b29d23e9b318b955dd0337d6b52e93933608469085c924e0d05b1df1f'; \
+              ;; \
+          'ppc64el') \
+              rustArch='powerpc64le-unknown-linux-gnu'; \
+              rustupSha256='acd89c42b47c93bd4266163a7b05d3f26287d5148413c0d47b2e8a7aa67c9dc0'; \
+              ;; \
+          's390x') \
+              rustArch='s390x-unknown-linux-gnu'; \
+              rustupSha256='726b7fd5d8805e73eab4a024a2889f8859d5a44e36041abac0a2436a52d42572'; \
+              ;; \
+          'riscv64') \
+              rustArch='riscv64gc-unknown-linux-gnu'; \
+              rustupSha256='09e64cc1b7a3e99adaa15dd2d46a3aad9d44d71041e2a96100d165c98a8fd7a7'; \
+              ;; \
+          ,*) \
+              echo >&2 "unsupported architecture: $arch"; \
+              exit 1; \
+              ;; \
+      esac; \
+      url="https://static.rust-lang.org/rustup/archive/1.28.2/${rustArch}/rustup-init"; \
+      wget --progress=dot:giga "$url"; \
+      echo "${rustupSha256} *rustup-init" | sha256sum -c -; \
+      chmod +x rustup-init; \
+      ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host ${rustArch}; \
+      rm rustup-init; \
+      chmod -R a+w $RUSTUP_HOME $CARGO_HOME; \
+      rustup --version; \
+      cargo --version; \
+      rustc --version;
+#+end_src
+
+*** Install convenient stuff
+#+begin_src conf :tangle ./Dockerfile
+  RUN \
+        --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+        --mount=target=/var/cache/apt,type=cache,sharing=locked \
+        echo 'START apt-get stuff' \
+        && apt-get -y update \
+        && apt-get install -y \
+            'build-essential' \
+            'git' \
+        && echo 'DONE apt-get stuff' ;
+
+  RUN cargo install eza
+  RUN cargo install starship
+#+end_src
+
+*** More convenience stuff
+#+begin_src conf :tangle ./Dockerfile
+  RUN \
+        --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+        --mount=target=/var/cache/apt,type=cache,sharing=locked \
+        echo 'START apt-get stuff' \
+        && apt-get -y update \
+        && apt-get install -y \
+            'fzf' \
+            'git' \
+            'zsh' \
+        && echo 'DONE apt-get stuff' ;
+
+  RUN git clone --depth 1 --recurse-submodules 'https://github.com/ohmyzsh/ohmyzsh.git' "${HOME}/.oh-my-zsh"
+  COPY ./.zshrc /root/.zshrc
+#+end_src
+
+** zshrc for the image
+#+begin_src conf :tangle ./.zshrc
+  export SHELL=zsh
+  export ZSH="$HOME/.oh-my-zsh"
+  plugins=(eza fzf git starship vi-mode zsh-interactive-cd)
+  source $ZSH/oh-my-zsh.sh
+#+end_src
+
+* COMMENT Work space
+#+begin_src emacs-lisp :results silent
+  (save-buffer)
+  (org-babel-tangle)
+  (async-shell-command "
+      './.git.sh'
+  " "log" "err")
+#+end_src
