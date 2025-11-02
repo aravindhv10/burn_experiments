@@ -17,9 +17,8 @@ RUN \
     && apt-get -y update \
     && apt-get install -y \
         'aria2' \
-        'git' \
+        'curl' \
         'wget' \
-        'zsh' \
     && echo 'DONE apt-get stuff' ;
 
 RUN set -eux; \
@@ -68,3 +67,31 @@ RUN set -eux; \
     rustup --version; \
     cargo --version; \
     rustc --version;
+
+
+  RUN \
+      --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+      --mount=target=/var/cache/apt,type=cache,sharing=locked \
+      echo 'START apt-get stuff' \
+      && apt-get -y update \
+      && apt-get install -y \
+          'build-essential' \
+          'git' \
+      && echo 'DONE apt-get stuff' ;
+
+RUN cargo install eza
+RUN cargo install starship
+
+  RUN \
+      --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+      --mount=target=/var/cache/apt,type=cache,sharing=locked \
+      echo 'START apt-get stuff' \
+      && apt-get -y update \
+      && apt-get install -y \
+          'fzf' \
+          'git' \
+          'zsh' \
+      && echo 'DONE apt-get stuff' ;
+
+RUN git clone --depth 1 --recurse-submodules 'https://github.com/ohmyzsh/ohmyzsh.git' "${HOME}/.oh-my-zsh"
+COPY ./.zshrc /root/.zshrc
