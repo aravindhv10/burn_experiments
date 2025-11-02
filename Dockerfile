@@ -3,7 +3,6 @@ FROM debian:testing-backports
 USER root
 WORKDIR '/root'
 ENV HOME='/root'
-
 ENV RUSTUP_HOME=/usr/local/rustup
 ENV CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
@@ -68,8 +67,7 @@ RUN set -eux; \
     cargo --version; \
     rustc --version;
 
-
-  RUN \
+RUN \
       --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
       --mount=target=/var/cache/apt,type=cache,sharing=locked \
       echo 'START apt-get stuff' \
@@ -82,7 +80,7 @@ RUN set -eux; \
 RUN cargo install eza
 RUN cargo install starship
 
-  RUN \
+RUN \
       --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
       --mount=target=/var/cache/apt,type=cache,sharing=locked \
       echo 'START apt-get stuff' \
