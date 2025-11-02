@@ -1,12 +1,28 @@
 FROM debian:testing-backports
 
+USER root
+WORKDIR '/root'
+ENV HOME='/root'
+
 ENV RUSTUP_HOME=/usr/local/rustup
 ENV CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
 ENV RUST_VERSION=1.91.0
+ENV DEBIAN_FRONTEND='noninteractive'
+
+RUN \
+    --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+    --mount=target=/var/cache/apt,type=cache,sharing=locked \
+    echo 'START apt-get stuff' \
+    && apt-get -y update \
+    && apt-get install -y \
+        'aria2' \
+        'git' \
+        'wget' \
+        'zsh' \
+    && echo 'DONE apt-get stuff' ;
 
 RUN set -eux; \
-    \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
         'amd64') \
@@ -42,16 +58,13 @@ RUN set -eux; \
             exit 1; \
             ;; \
     esac; \
-    \
     url="https://static.rust-lang.org/rustup/archive/1.28.2/${rustArch}/rustup-init"; \
     wget --progress=dot:giga "$url"; \
     echo "${rustupSha256} *rustup-init" | sha256sum -c -; \
-    \
     chmod +x rustup-init; \
     ./rustup-init -y --no-modify-path --profile minimal --default-toolchain $RUST_VERSION --default-host ${rustArch}; \
     rm rustup-init; \
     chmod -R a+w $RUSTUP_HOME $CARGO_HOME; \
-    \
     rustup --version; \
     cargo --version; \
     rustc --version;
