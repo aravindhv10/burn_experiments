@@ -205,14 +205,14 @@
 
 ** Run the image
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./podman_run.sh
-  podman run -it --rm rust_tch_rs zsh
+  podman run -it --rm -v "$(realpath .):/data" rust_tch_rs zsh
 #+end_src
 
 ** Dockerfile
 
 *** Base image
 #+begin_src conf :tangle ./Dockerfile
-  FROM debian:testing-backports
+  FROM debian:testing-backports as basic
 #+end_src
 
 *** ENV stuff
@@ -288,6 +288,11 @@
       rustc --version;
 #+end_src
 
+*** Prepare rust basics
+#+begin_src conf :tangle ./Dockerfile
+  FROM basic as rust
+#+end_src
+
 *** Install convenient stuff
 #+begin_src conf :tangle ./Dockerfile
   RUN \
@@ -302,6 +307,11 @@
 
   RUN cargo install eza
   RUN cargo install starship
+#+end_src
+
+*** Prepare for zsh
+#+begin_src conf :tangle ./Dockerfile
+  FROM rust
 #+end_src
 
 *** More convenience stuff
@@ -327,6 +337,30 @@
   export ZSH="$HOME/.oh-my-zsh"
   plugins=(eza fzf git starship vi-mode zsh-interactive-cd)
   source $ZSH/oh-my-zsh.sh
+#+end_src
+
+* Download the libtorch
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'download.sh'
+#+end_src
+
+** The actual download script
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./download.sh
+  aria2c -c -x16 -j16 'https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
+#+end_src
+
+** Install zip
+#+begin_src conf :tangle ./Dockerfile
+  RUN \
+        --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+        --mount=target=/var/cache/apt,type=cache,sharing=locked \
+        echo 'START apt-get stuff' \
+        && apt-get -y update \
+        && apt-get install -y \
+            'zip' \
+        && echo 'DONE apt-get stuff' ;
 #+end_src
 
 * COMMENT Work space

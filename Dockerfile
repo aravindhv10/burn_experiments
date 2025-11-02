@@ -1,4 +1,4 @@
-FROM debian:testing-backports
+FROM debian:testing-backports as basic
 
 USER root
 WORKDIR '/root'
@@ -67,6 +67,8 @@ RUN set -eux; \
     cargo --version; \
     rustc --version;
 
+FROM basic as rust
+
 RUN \
       --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
       --mount=target=/var/cache/apt,type=cache,sharing=locked \
@@ -79,6 +81,8 @@ RUN \
 
 RUN cargo install eza
 RUN cargo install starship
+
+FROM rust
 
 RUN \
       --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
@@ -93,3 +97,12 @@ RUN \
 
 RUN git clone --depth 1 --recurse-submodules 'https://github.com/ohmyzsh/ohmyzsh.git' "${HOME}/.oh-my-zsh"
 COPY ./.zshrc /root/.zshrc
+
+RUN \
+      --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+      --mount=target=/var/cache/apt,type=cache,sharing=locked \
+      echo 'START apt-get stuff' \
+      && apt-get -y update \
+      && apt-get install -y \
+          'zip' \
+      && echo 'DONE apt-get stuff' ;
