@@ -405,6 +405,7 @@
 
 * Dockerfile libtorch
 
+
 ** Shell script to build
 
 *** Add files to git
@@ -449,6 +450,18 @@
 #+begin_src conf :tangle ./Dockerfile_rust_libtorch
   RUN aria2c -c -x16 -j16 'https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
   # RUN unzip './libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
+#+end_src
+
+** Script to run
+
+*** Add files to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'podman_run.sh'
+#+end_src
+
+*** Actual script
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./podman_run.sh
+  podman run -it --rm -v "$(realpath .):/data" rust_libtorch zsh
 #+end_src
 
 * COMMENT Work space
