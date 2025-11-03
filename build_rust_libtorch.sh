@@ -1,4 +1,4 @@
 #!/bin/sh
 CMD='sudo -A docker'
 which buildah && CMD='buildah'
-${CMD} build -t rust_zsh - < ./Dockerfile_rust_zsh
+${CMD} build -t rust_libtorch - < ./Dockerfile_rust_libtorch
