@@ -80,7 +80,6 @@
   }
 #+end_src
 
-
 * Python file to produce the model file
 
 ** Add the file to git
@@ -188,6 +187,33 @@
   cargo run
 #+end_src
 
+* Container image related functions
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'important_functions.sh'
+#+end_src
+
+** Actual script
+
+*** Build container
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./important_functions.sh
+  BUILD_CONTAINER () {
+      CMD='sudo -A docker'
+      which buildah && CMD='buildah'
+      ${CMD} build -t "${2}" -f "./${1}"
+  }
+#+end_src
+
+*** Run container
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./important_functions.sh
+  RUN_CONTAINER () {
+      CMD='sudo -A docker'
+      which podman && CMD='podman'
+      ${CMD} run -it --rm -v "$(realpath .):/data" rust_libtorch zsh
+  }
+#+end_src
+
 * Dockerfile basic
 
 ** Add files to git
@@ -198,10 +224,8 @@
 
 ** Shell script to build
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./build_rust_testing.sh
-  CMD='sudo -A docker'
-  which buildah && CMD='buildah'
-  echo "${CMD} build -t rust_testing - < ./Dockerfile_rust_testing"
-  ${CMD} build -t rust_testing - < ./Dockerfile_rust_testing
+  . './important_functions.sh'
+  BUILD_CONTAINER 'Dockerfile_rust_testing' 'rust_testing'
 #+end_src
 
 ** Dockerfile
@@ -297,9 +321,8 @@
 
 *** Actual script
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./build_rust_conv.sh
-  CMD='sudo -A docker'
-  which buildah && CMD='buildah'
-  ${CMD} build -t rust_conv - < ./Dockerfile_rust_conv
+  . './important_functions.sh'
+  BUILD_CONTAINER 'Dockerfile_rust_conv' 'rust_conv'
 #+end_src
 
 ** Dockerfile
@@ -344,9 +367,8 @@
 
 *** Actual script
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./build_rust_zsh.sh
-  CMD='sudo -A docker'
-  which buildah && CMD='buildah'
-  ${CMD} build -t rust_zsh -f ./Dockerfile_rust_zsh .
+  . './important_functions.sh'
+  BUILD_CONTAINER 'Dockerfile_rust_zsh' 'rust_zsh'
 #+end_src
 
 ** Dockerfile
@@ -405,7 +427,6 @@
 
 * Dockerfile libtorch
 
-
 ** Shell script to build
 
 *** Add files to git
@@ -415,9 +436,8 @@
 
 *** Actual script
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./build_rust_libtorch.sh
-  CMD='sudo -A docker'
-  which buildah && CMD='buildah'
-  ${CMD} build -t rust_libtorch - < ./Dockerfile_rust_libtorch
+  . './important_functions.sh'
+  BUILD_CONTAINER 'Dockerfile_rust_libtorch' 'rust_libtorch'
 #+end_src
 
 ** Dockerfile
@@ -449,19 +469,20 @@
 *** Install apt stuff
 #+begin_src conf :tangle ./Dockerfile_rust_libtorch
   RUN aria2c -c -x16 -j16 'https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
-  # RUN unzip './libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
+  RUN unzip './libtorch-shared-with-deps-2.9.0+cpu.zip'
 #+end_src
 
-** Script to run
+* Script to run
 
-*** Add files to git
+** Add files to git
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
   G 'podman_run.sh'
 #+end_src
 
-*** Actual script
+** Actual script
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./podman_run.sh
-  podman run -it --rm -v "$(realpath .):/data" rust_libtorch zsh
+  . './important_functions.sh'
+  RUN_CONTAINER
 #+end_src
 
 * COMMENT Work space

@@ -1,4 +1,3 @@
 #!/bin/sh
-CMD='sudo -A docker'
-which buildah && CMD='buildah'
-${CMD} build -t rust_libtorch - < ./Dockerfile_rust_libtorch
+. './important_functions.sh'
+BUILD_CONTAINER 'Dockerfile_rust_libtorch' 'rust_libtorch'

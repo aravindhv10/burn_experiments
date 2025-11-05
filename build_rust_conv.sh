@@ -1,4 +1,3 @@
 #!/bin/sh
-CMD='sudo -A docker'
-which buildah && CMD='buildah'
-${CMD} build -t rust_conv - < ./Dockerfile_rust_conv
+. './important_functions.sh'
+BUILD_CONTAINER 'Dockerfile_rust_conv' 'rust_conv'
