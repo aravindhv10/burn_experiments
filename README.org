@@ -119,28 +119,37 @@
 
 
   def export_to_dynamo(path_file_out):
-      model = model_wrapper()
-      model = torch.compile(
-          model=model,
-          fullgraph=True,
-          dynamic=True,
-          backend="inductor",
-          mode="max-autotune",
-      )
-      x = torch.rand(
-          (BATCH_SIZE, INPUT_SIZE),
-          dtype=torch.float32,
-      )
-      y = model(x)
-      exported_module = torch.export.export(
-          mod=model,
-          args=(x,),
-          strict=True,
-      )
-      torch.export.save(exported_module, path_file_out + ".pt2")
+      with torch.no_grad():
+          model = model_wrapper()
+          model = torch.compile(
+              model=model,
+              fullgraph=True,
+              dynamic=True,
+              backend="inductor",
+              mode="max-autotune",
+          )
+          x = torch.rand(
+              (BATCH_SIZE, INPUT_SIZE),
+              dtype=torch.float32,
+          )
+          y = model(x)
+          exported_module = torch.export.export(
+              mod=model,
+              args=(x,),
+              strict=True,
+          )
 
-      exported_module = torch.jit.trace(func = model, example_inputs=x,)
-      exported_module.save(path_file_out + ".pt")
+          output_path = torch._inductor.aoti_compile_and_package(
+              exported_module,
+              # [Optional] Specify the generated shared library path. If not specified,
+              # the generated artifact is stored in your system temp directory.
+              package_path=path_file_out + ".pt2",
+          )
+
+          # torch.export.save(exported_module, path_file_out + ".pt2")
+
+          # exported_module = torch.jit.trace(func = model, example_inputs=x,)
+          # exported_module.save(path_file_out + ".pt")
 
 
   def export_to_onnx(path_file_out):
