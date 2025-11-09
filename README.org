@@ -147,10 +147,19 @@
               package_path=path_file_out + ".pt2",
           )
 
-          # torch.export.save(exported_module, path_file_out + ".pt2")
+          compiled_model = torch.compile(
+              model=exported_module.module(),
+              fullgraph=True,
+              dynamic=True,
+              backend="inductor",
+              mode="max-autotune",
+          )
 
-          # exported_module = torch.jit.trace(func = model, example_inputs=x,)
-          # exported_module.save(path_file_out + ".pt")
+          jit_module = torch.jit.trace(
+              func=compiled_model,
+              example_inputs=x,
+          )
+          exported_module.save(path_file_out + ".pt")
 
 
   def export_to_onnx(path_file_out):
