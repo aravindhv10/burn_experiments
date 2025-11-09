@@ -25,6 +25,9 @@ RUN \
         && rm -rf -- './helix-25.07.1-x86_64-linux/' \
     && echo 'Done installing helix' ;
 
+RUN mkdir -pv -- '/root/.config/helix'
+ADD ./config.toml '/root/.config/helix/config.toml'
+
 RUN \
       --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
       --mount=target=/var/cache/apt,type=cache,sharing=locked \

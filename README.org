@@ -549,6 +549,22 @@
       && echo 'Done installing helix' ;
 #+end_src
 
+*** Configuring helix
+
+**** The actual config file
+#+begin_src conf :tangle ./config.toml
+  theme = "modus_vivendi"
+
+  [editor]
+  true-color = true
+#+end_src
+
+**** Copy the file
+#+begin_src conf :tangle ./Dockerfile_rust_final
+  RUN mkdir -pv -- '/root/.config/helix'
+  ADD ./config.toml '/root/.config/helix/config.toml'
+#+end_src
+
 *** Install apt stuff for editing
 #+begin_src conf :tangle ./Dockerfile_rust_final
   RUN \
