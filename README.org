@@ -137,7 +137,10 @@
           args=(x,),
           strict=True,
       )
-      torch.export.save(exported_module, path_file_out)
+      torch.export.save(exported_module, path_file_out + ".pt2")
+
+      exported_module = torch.jit.trace(func = model, example_inputs=x,)
+      exported_module.save(path_file_out + ".pt")
 
 
   def export_to_onnx(path_file_out):
@@ -181,8 +184,13 @@
           return x
 
 
-  export_to_dynamo(path_file_out="out.pt2")
+  export_to_dynamo(path_file_out="out")
 #+end_src
+
+res = torch.jit.trace(
+    func = model,
+    example_inputs=x,
+)
 
 * Script to run
 
@@ -581,6 +589,11 @@
   ADD ./config.toml '/root/.config/helix/config.toml'
 #+end_src
 
+*** Add rustfmt
+#+begin_src conf :tangle ./Dockerfile_rust_final
+  RUN rustup component add rustfmt
+#+end_src
+
 *** Install apt stuff for editing
 #+begin_src conf :tangle ./Dockerfile_rust_final
   RUN \
@@ -590,6 +603,9 @@
         && apt-get -y update \
         && apt-get install -y \
             'neovim' \
+            'python3' \
+            'python3-pip' \
+            'python3-venv' \
         && echo 'DONE apt-get stuff' ;
 #+end_src
 
@@ -615,7 +631,24 @@
 
 ** Actual code
 #+begin_src rust :tangle ./src,main.rs
-  fn main(){
+  use std::path::Path;
+  use tch::CModule;
+  use tch::Tensor;
+
+  fn main() {
+
+      let t = Tensor::from_slice(&[3, 1, 4, 1, 5]);
+      let t = t * 2;
+      t.print();
+
+      match CModule::load(Path::new("./out.pt")) {
+          Ok(model) => {
+              println!("Successfully loaded the model");
+          }
+          Err(e) => {
+              println!("Failed to load the model {}", e);
+          }
+      }
       println!("asd")
   }
 #+end_src

@@ -28,6 +28,8 @@ RUN \
 RUN mkdir -pv -- '/root/.config/helix'
 ADD ./config.toml '/root/.config/helix/config.toml'
 
+RUN rustup component add rustfmt
+
 RUN \
       --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
       --mount=target=/var/cache/apt,type=cache,sharing=locked \
@@ -35,4 +37,7 @@ RUN \
       && apt-get -y update \
       && apt-get install -y \
           'neovim' \
+          'python3' \
+          'python3-pip' \
+          'python3-venv' \
       && echo 'DONE apt-get stuff' ;

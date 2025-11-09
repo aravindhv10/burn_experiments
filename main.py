@@ -36,7 +36,10 @@ def export_to_dynamo(path_file_out):
         args=(x,),
         strict=True,
     )
-    torch.export.save(exported_module, path_file_out)
+    torch.export.save(exported_module, path_file_out + ".pt2")
+
+    exported_module = torch.jit.trace(func = model, example_inputs=x,)
+    exported_module.save(path_file_out + ".pt")
 
 
 def export_to_onnx(path_file_out):
@@ -80,4 +83,4 @@ class model_wrapper(torch.nn.Module):
         return x
 
 
-export_to_dynamo(path_file_out="out.pt2")
+export_to_dynamo(path_file_out="out")
