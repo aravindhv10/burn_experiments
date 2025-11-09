@@ -29,7 +29,8 @@ RUN \
     && cd share/cmake \
     && ls | sed 's@^@(mv -vf -- "@g;s@$@" "/usr/share/cmake");@g' | sh \
     && cd ../.. \
-    && rmdir -pv -- share/cmake \
-    && rmdir bin \
+    && rmdir -pv -- share/cmake bin \
+    && rm 'build-hash' 'build-version' \
     && cd .. \
+    && rmdir libtorch \
     && echo 'Done Install libtorch' ;

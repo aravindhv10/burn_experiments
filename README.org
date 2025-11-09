@@ -183,7 +183,7 @@
 ** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-  export LIBTORCH="$(realpath .)/libtorch"
+  # export LIBTORCH="$(realpath .)/libtorch"
   cargo run
 #+end_src
 
@@ -484,9 +484,10 @@
       && cd share/cmake \
       && ls | sed 's@^@(mv -vf -- "@g;s@$@" "/usr/share/cmake");@g' | sh \
       && cd ../.. \
-      && rmdir -pv -- share/cmake \
-      && rmdir bin \
+      && rmdir -pv -- share/cmake bin \
+      && rm 'build-hash' 'build-version' \
       && cd .. \
+      && rmdir libtorch \
       && echo 'Done Install libtorch' ;
 #+end_src
 
