@@ -1,5 +1,6 @@
-use std::path::Path;
-use tch::CModule;
+use aotinductor::ModelPackage;
+use tch::Device;
+use tch::Kind;
 use tch::Tensor;
 
 fn main() {
@@ -8,13 +9,5 @@ fn main() {
     let t = t * 2;
     t.print();
 
-    match CModule::load(Path::new("./out.pt")) {
-        Ok(model) => {
-            println!("Successfully loaded the model");
-        }
-        Err(e) => {
-            println!("Failed to load the model {}", e);
-        }
-    }
     println!("asd")
 }

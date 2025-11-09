@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 # tch = { version = "0.22.0", path = "../../LaurentMazare/tch-rs", features = ["cpython", "memmap2"] }
 tch = { version = "0.22.0", features = ["cpython", "memmap2"] }
+aotinductor = "0.1.2"
