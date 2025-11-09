@@ -65,7 +65,7 @@
   [dependencies]
   # tch = { version = "0.22.0", path = "../../LaurentMazare/tch-rs", features = ["cpython", "memmap2"] }
   tch = { version = "0.22.0", features = ["cpython", "memmap2"] }
-  aotinductor = "0.1.2"
+  # aotinductor = "0.1.2"
 #+end_src
 
 * build.rs
@@ -650,7 +650,7 @@ res = torch.jit.trace(
 
 ** Actual code
 #+begin_src rust :tangle ./src,main.rs
-  use aotinductor::ModelPackage;
+  use tch::CModule;
   use tch::Device;
   use tch::Kind;
   use tch::Tensor;
@@ -661,9 +661,36 @@ res = torch.jit.trace(
       let t = t * 2;
       t.print();
 
+      let model = CModule::load("./out.pt")
+          .context("Failed to load TorchScript model. Check the file path and LibTorch setup.")?;
+
+      let device = Device::cuda_if_available();
+      model.to_device(device);
+      println!("Model loaded successfully and moved to {:?}", device);
+
       println!("asd")
   }
 #+end_src
+
+    let input_tensor = Tensor::rand(&[1, 10], (Kind::Float, device));
+    
+    // 4. Run Inference
+    // `forward_ts` takes a slice of input Tensors and returns an IValue, 
+    // which we then expect to be a single Tensor (Tensors are the common IValue output).
+    println!("Running inference...");
+    let output_ivalue = model
+        .forward_ts(&[input_tensor])
+        .context("Inference failed")?;
+
+    // 5. Extract and print the output
+    let output_tensor = output_ivalue.try_into_tensor()?;
+    
+    println!("Inference result:");
+    println!("  Shape: {:?}", output_tensor.size());
+    
+    // Convert the output tensor to a Rust Vec on CPU for easy viewing
+    let output_data: Vec<f32> = output_tensor.to_device(Device::Cpu).try_into()?;
+    println!("  Data: {:?}", output_data);
 
 * COMMENT Work space
 #+begin_src emacs-lisp :results silent
