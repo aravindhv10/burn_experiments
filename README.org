@@ -17,6 +17,11 @@
   P_CLEAN(){
       rm -vf -- "./${1}"
   }
+
+  P_SET(){
+      mkdir -pv -- "$('dirname' -- "./${2}")"
+      cp "./${1}" "./${2}"
+  }
 #+end_src
 
 ** Compound functions
@@ -24,6 +29,12 @@
   G(){
       P_TOUCH "${1}"
       P_GITADD "${1}"
+  }
+
+  S(){
+      G "${1}"
+      P_SET "${1}" "${2}"
+      G "${2}"
   }
 #+end_src
 
@@ -593,6 +604,20 @@
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./podman_run.sh
   . './important_functions.sh'
   RUN_CONTAINER
+#+end_src
+
+* Main rust code
+
+** Add files to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  S 'src,main.rs' 'src/main.rs'
+#+end_src
+
+** Actual code
+#+begin_src rust :tangle ./src,main.rs
+  fn main(){
+      println!("asd")
+  }
 #+end_src
 
 * COMMENT Work space
