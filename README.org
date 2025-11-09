@@ -551,6 +551,11 @@
 
 *** Configuring helix
 
+**** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'config.toml'
+#+end_src
+
 **** The actual config file
 #+begin_src conf :tangle ./config.toml
   theme = "modus_vivendi"
