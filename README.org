@@ -210,7 +210,7 @@
   RUN_CONTAINER () {
       CMD='sudo -A docker'
       which podman && CMD='podman'
-      ${CMD} run -it --rm -v "$(realpath .):/data" rust_libtorch zsh
+      ${CMD} run -it --rm -v "$(realpath .):/data" rust_final zsh
   }
 #+end_src
 
@@ -400,8 +400,6 @@
 
 *** Build and install rust executables
 #+begin_src conf :tangle ./Dockerfile_rust_zsh
-  RUN cargo install eza
-  RUN cargo install starship
   RUN git clone --depth 1 --recurse-submodules 'https://github.com/ohmyzsh/ohmyzsh.git' "${HOME}/.oh-my-zsh"
 #+end_src
 
@@ -470,6 +468,76 @@
 #+begin_src conf :tangle ./Dockerfile_rust_libtorch
   RUN aria2c -c -x16 -j16 'https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
   RUN unzip './libtorch-shared-with-deps-2.9.0+cpu.zip'
+#+end_src
+
+* Dockerfile finalizing
+
+** Shell script to build
+
+*** Add files to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'build_rust_final.sh'
+#+end_src
+
+*** Actual script
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./build_rust_final.sh
+  . './important_functions.sh'
+  BUILD_CONTAINER 'Dockerfile_rust_final' 'rust_final'
+#+end_src
+
+** Dockerfile
+
+*** Add files to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'Dockerfile_rust_final'
+#+end_src
+
+*** Base image
+#+begin_src conf :tangle ./Dockerfile_rust_final
+  FROM rust_libtorch
+  ENV LIBTORCH="/root/libtorch"
+  RUN rm -vf -- '/root/libtorch-shared-with-deps-2.9.0+cpu.zip'
+  RUN \
+      echo 'Start rust analyzer install' \
+          && curl -L 'https://github.com/rust-lang/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz' \
+          | gunzip -c - \
+          > '/usr/local/bin/rust-analyzer' \
+          && chmod +x '/usr/local/bin/rust-analyzer' \
+      && echo 'Done rust analyzer install' ;
+#+end_src
+
+*** Installing helix
+#+begin_src conf :tangle ./Dockerfile_rust_final
+  RUN aria2c -c -x16 -j16 'https://github.com/helix-editor/helix/releases/download/25.07.1/helix-25.07.1-x86_64-linux.tar.xz'
+  RUN tar -xf ./helix-25.07.1-x86_64-linux.tar.xz
+  RUN \
+      echo 'Start installing helix' \
+      && cd ./helix-25.07.1-x86_64-linux/ \
+      && mv hx /usr/local/bin \
+      && mv runtime /usr/local/bin \
+      && mv contrib/completion/hx.bash /usr/share/bash-completion/completions/hx \
+      && mv ./contrib/completion/hx.zsh /usr/share/zsh/vendor-completions/_hx \
+      && mv ./contrib/completion/hx.fish /usr/share/fish/completions/hx.fish \
+      && echo 'Done installing helix' ;
+#+end_src
+
+
+*** Install apt stuff for editing
+#+begin_src conf :tangle ./Dockerfile_rust_final
+
+
+
+
+  RUN \
+        --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+        --mount=target=/var/cache/apt,type=cache,sharing=locked \
+        echo 'START apt-get stuff' \
+        && apt-get -y update \
+        && apt-get install -y \
+            'hx' \
+            'neovim' \
+            'rust-analyzer' \
+        && echo 'DONE apt-get stuff' ;
 #+end_src
 
 * Script to run

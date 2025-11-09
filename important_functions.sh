@@ -8,5 +8,5 @@ BUILD_CONTAINER () {
 RUN_CONTAINER () {
     CMD='sudo -A docker'
     which podman && CMD='podman'
-    ${CMD} run -it --rm -v "$(realpath .):/data" rust_libtorch zsh
+    ${CMD} run -it --rm -v "$(realpath .):/data" rust_final zsh
 }

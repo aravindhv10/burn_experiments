@@ -12,8 +12,6 @@ RUN \
           'zsh' \
       && echo 'DONE apt-get stuff' ;
 
-RUN cargo install eza
-RUN cargo install starship
 RUN git clone --depth 1 --recurse-submodules 'https://github.com/ohmyzsh/ohmyzsh.git' "${HOME}/.oh-my-zsh"
 
 ADD ./zshrc /root/.zshrc
