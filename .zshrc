@@ -1,4 +1,0 @@
-export SHELL=zsh
-export ZSH="$HOME/.oh-my-zsh"
-plugins=(eza fzf git starship vi-mode zsh-interactive-cd)
-source $ZSH/oh-my-zsh.sh
