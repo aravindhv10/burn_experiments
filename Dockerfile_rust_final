@@ -1,6 +1,4 @@
 FROM rust_libtorch
-ENV LIBTORCH="/root/libtorch"
-RUN rm -vf -- '/root/libtorch-shared-with-deps-2.9.0+cpu.zip'
 
 RUN \
     echo 'Start rust analyzer install' \
