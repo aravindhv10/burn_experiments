@@ -57,7 +57,7 @@ def export_to_dynamo(path_file_out):
             func=exported_module.module(),
             example_inputs=x,
         )
-        jit_module.save(path_file_out + ".pt")
+    jit_module.save(path_file_out + ".pt")
 
 
 def export_to_onnx(path_file_out):

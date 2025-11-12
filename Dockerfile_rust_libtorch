@@ -19,18 +19,13 @@ RUN \
     echo 'Install libtorch' \
     && cd libtorch \
     && cd lib \
-    && ls | sed 's@^@(mv -vf -- "@g;s@$@" "/usr/lib/");@g' | sh \
+    && ls | sed 's@^@(cp -vapf -- "@g;s@$@" "/usr/lib/");@g' | sh \
     && cd .. \
-    && rmdir lib \
     && cd include \
-    && ls | sed 's@^@(mv -vf -- "@g;s@$@" "/usr/include/");@g' | sh \
+    && ls | sed 's@^@(cp -vapf -- "@g;s@$@" "/usr/include/");@g' | sh \
     && cd .. \
-    && rmdir include \
     && cd share/cmake \
-    && ls | sed 's@^@(mv -vf -- "@g;s@$@" "/usr/share/cmake");@g' | sh \
+    && ls | sed 's@^@(cp -vapf -- "@g;s@$@" "/usr/share/cmake");@g' | sh \
     && cd ../.. \
-    && rmdir -pv -- share/cmake bin \
-    && rm 'build-hash' 'build-version' \
     && cd .. \
-    && rmdir libtorch \
     && echo 'Done Install libtorch' ;
