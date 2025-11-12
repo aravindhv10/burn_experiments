@@ -616,6 +616,7 @@ res = torch.jit.trace(
         echo 'START apt-get stuff' \
         && apt-get -y update \
         && apt-get install -y \
+            'cmake' \
             'neovim' \
             'python3' \
             'python3-dev' \
@@ -687,6 +688,13 @@ res = torch.jit.trace(
     println!("  Data: {:?}", output_data);
 
 * Try inference in c++
+
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'main.cpp'
+#+end_src
+
+** Actual file
 #+begin_src c++ :tangle ./main.cpp
   #include <iostream>
   #include <vector>
@@ -707,6 +715,32 @@ res = torch.jit.trace(
   }
 #+end_src
 
+* CMake file
+
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'CMakeLists.txt'
+#+end_src
+
+** Actual file
+#+begin_src conf :tangle ./CMakeLists.txt
+  cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+  project(aoti_example)
+
+  find_package(Torch REQUIRED)
+
+  add_executable(aoti_example main.cpp out.pt2)
+
+  add_custom_command(
+      OUTPUT out.pt2
+      COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/main.py
+      DEPENDS main.py
+  )
+
+  target_link_libraries(aoti_example "${TORCH_LIBRARIES}")
+  set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
+#+end_src
+
 * COMMENT Work space
 #+begin_src emacs-lisp :results silent
   (save-buffer)
@@ -715,4 +749,3 @@ res = torch.jit.trace(
       './.git.sh'
   " "log" "err")
 #+end_src
-
