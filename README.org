@@ -702,15 +702,23 @@ res = torch.jit.trace(
   #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
   #include <torch/torch.h>
 
-  int main() {
-    c10::InferenceMode mode;
+  extern "C" {
+  torch::Tensor myfun(torch::Tensor in) {
+    static c10::InferenceMode mode;
+    static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
 
-    torch::inductor::AOTIModelPackageLoader loader("out.pt2");
-    std::vector<torch::Tensor> inputs = {torch::randn({4, 100}, at::kCPU)};
+    // std::vector<torch::Tensor> inputs = {torch::randn({4, 100}, at::kCPU)};
+    std::vector<torch::Tensor> inputs = {in};
     std::vector<torch::Tensor> outputs = loader.run(inputs);
-    std::cout << "Result from the first inference:" << std::endl;
+    // std::cout << "Result from the first inference:" << std::endl;
     std::cout << outputs[0] << std::endl;
+    return outputs[0];
+  }
+  }
 
+  int main() {
+    // std::vector<torch::Tensor> inputs = {torch::randn({4, 100}, at::kCPU)};
+    std::cout <<  myfun(torch::randn({4, 100}, at::kCPU)) << std::endl;
     return 0;
   }
 #+end_src
@@ -740,6 +748,14 @@ res = torch.jit.trace(
   target_link_libraries(aoti_example "${TORCH_LIBRARIES}")
   set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
 #+end_src
+
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./compile_g++.sh
+  # g++ ./main.cpp -c -o ./main.o -I/usr/include/torch/csrc/api/include/ -laoti_custom_ops -lbackend_with_compiler -lc10 -lgomp-98b21ff3 -ljitbackend_test -lnnapi_backend -lshm -ltorch -ltorch_cpu -ltorch_global_deps -ltorch_python -ltorchbind_test
+  g++ ./main.cpp -c -o ./main.o -I/usr/include/torch/csrc/api/include/
+  g++ ./main.o -o ./main.exe -laoti_custom_ops -lbackend_with_compiler -lc10 -lgomp-98b21ff3 -ljitbackend_test -lnnapi_backend -lshm -ltorch -ltorch_cpu -ltorch_global_deps -ltorch_python -ltorchbind_test
+  # g++ ./main.o -o libmain.so -fPIC -shared
+#+end_src
+
 
 * COMMENT Work space
 #+begin_src emacs-lisp :results silent
