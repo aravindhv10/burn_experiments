@@ -632,20 +632,35 @@
   #include <iostream>
   #include <vector>
 
-  #include <torch/torch.h>
   #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
+  #include <torch/torch.h>
 
   extern "C" {
-  int torchmain() {
-      c10::InferenceMode mode;
 
-      torch::inductor::AOTIModelPackageLoader loader("out.pt2");
-      std::vector<torch::Tensor> inputs = {torch::randn({8, 100}, at::kCPU)};
-      std::vector<torch::Tensor> outputs = loader.run(inputs);
-      std::cout << "Result from the first inference:"<< std::endl;
-      std::cout << outputs[0] << std::endl;
+  struct arg_input {
+    float val[100];
+  };
 
-      return 0;
+  struct arg_output {
+    float val[4];
+  };
+
+  arg_output torchmain(arg_input in) {
+    static c10::InferenceMode mode;
+    static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
+
+    std::vector<torch::Tensor> inputs = {torch::zeros({1, 100}, at::kCPU)};
+    for (int i = 0; i < 100; i++) {
+      inputs[0][i] = in.val[i];
+    }
+
+    std::vector<torch::Tensor> outputs = loader.run(inputs);
+
+    arg_output out;
+    for (int i = 0; i < 4; i++) {
+      out.val[i] = outputs[0][i];
+    }
+    return out;
   }
   }
 #+end_src
@@ -653,7 +668,16 @@
 ** Header file
 #+begin_src c++ :tangle ./src,main.hpp
   extern "C" {
-    int torchmain();
+
+  struct arg_input {
+    float val[100];
+  };
+
+  struct arg_output {
+    float val[4];
+  };
+
+  arg_output torchmain(arg_input);
   }
 #+end_src
 
@@ -773,17 +797,55 @@
 
 *** Outputs from bindgen
 #+begin_src rust :tangle ./src,main.rs
+  #[repr(C)]
+  #[derive(Debug, Copy, Clone)]
+  pub struct arg_input {
+      pub val: [f32; 100usize],
+  }
+
+  // #[allow(clippy::unnecessary_operation, clippy::identity_op)]
+  // const _: () = {
+  //     ["Size of arg_input"][::std::mem::size_of::<arg_input>() - 400usize];
+  //     ["Alignment of arg_input"][::std::mem::align_of::<arg_input>() - 4usize];
+  //     ["Offset of field: arg_input::val"][::std::mem::offset_of!(arg_input, val) - 0usize];
+  // };
+
+  #[repr(C)]
+  #[derive(Debug, Copy, Clone)]
+  pub struct arg_output {
+      pub val: [f32; 4usize],
+  }
+
+  // #[allow(clippy::unnecessary_operation, clippy::identity_op)]
+  // const _: () = {
+  //     ["Size of arg_output"][::std::mem::size_of::<arg_output>() - 16usize];
+  //     ["Alignment of arg_output"][::std::mem::align_of::<arg_output>() - 4usize];
+  //     ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
+  // };
+
   unsafe extern "C" {
-      pub fn torchmain();
+      pub fn torchmain(arg1: arg_input) -> arg_output;
   }
 #+end_src
 
 *** Actual rust parts
 #+begin_src rust :tangle ./src,main.rs
   fn main() {
-      println!("asd") ;
+      // unsafe {
+      // torchmain();
+      // }
+      let tmp_array: [f32;100] = (0..100)
+              .map(|i| ((i as f32)/100.0))
+              .collect::<Vec<f32>>() // Collect into a Vec first
+              .try_into()            // Then try to convert the Vec to a [f32; 100]
+              .unwrap_or_else(|_| panic!("Failed to create a 100-element array. This should not happen."));
+
+      let input = arg_input {
+          val: tmp_array,
+      };
+
       unsafe {
-      torchmain();
+      let res = torchmain(input);
       }
   }
 #+end_src
