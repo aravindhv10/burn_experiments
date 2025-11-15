@@ -17,7 +17,7 @@ struct arg_output {
   float val[OUTPUT_SIZE];
 };
 
-arg_output torchmain(arg_input const in) {
+arg_output do_infer(arg_input const in) {
   static c10::InferenceMode mode;
   static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
 
