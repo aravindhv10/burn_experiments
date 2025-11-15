@@ -500,6 +500,7 @@
   import einops
   import timm
   import torch
+  from torch.export.dynamic_shapes import Dim
 
 
   def export_to_dynamo(path_file_out):
@@ -517,10 +518,16 @@
               dtype=torch.float32,
           )
           y = model(x)
+
+          dynamic_shapes = {
+              "x": (Dim.DYNAMIC, Dim.STATIC),
+          }
           exported_module = torch.export.export(
-              mod=model,
-              args=(x,),
-              strict=True,
+              model._orig_mod,
+              (x,),
+              dynamic_shapes=dynamic_shapes,
+              # strict=True,
+              # dynamic_shapes=dynamic_shapes,
           )
 
           output_path = torch._inductor.aoti_compile_and_package(
@@ -581,18 +588,16 @@
               dtype=torch.float32,
           )
 
-      def forward(self, x):
+      def forward(
+          self,
+          x: torch.Tensor,
+      ):
           x = self.L1(x)
           return x
 
 
   export_to_dynamo(path_file_out="out")
 #+end_src
-
-res = torch.jit.trace(
-    func = model,
-    example_inputs=x,
-)
 
 * C++ program
 
@@ -635,8 +640,7 @@ res = torch.jit.trace(
       c10::InferenceMode mode;
 
       torch::inductor::AOTIModelPackageLoader loader("out.pt2");
-      // Assume running on CUDA
-      std::vector<torch::Tensor> inputs = {torch::randn({4, 100}, at::kCPU)};
+      std::vector<torch::Tensor> inputs = {torch::randn({8, 100}, at::kCPU)};
       std::vector<torch::Tensor> outputs = loader.run(inputs);
       std::cout << "Result from the first inference:"<< std::endl;
       std::cout << outputs[0] << std::endl;
@@ -664,7 +668,6 @@ res = torch.jit.trace(
     return 0;
   }
 #+end_src
-
 
 ** Script to compile
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./compile_g++.sh
@@ -708,13 +711,7 @@ res = torch.jit.trace(
   edition = "2024"
 
   [build-dependencies]
-  # bindgen = "0.72.1"
   cc = { version = "1.2.46", features = ["jobserver", "parallel"] }
-
-  # [dependencies]
-  # tch = { version = "0.22.0", path = "../../LaurentMazare/tch-rs", features = ["cpython", "memmap2"] }
-  # tch = { version = "0.22.0", features = ["cpython", "memmap2"] }
-  # aotinductor = "0.1.2"
 #+end_src
 
 * Script to run the rust code
@@ -727,8 +724,6 @@ res = torch.jit.trace(
 ** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-  # export CXXFLAGS='-I/usr/include/torch/csrc/api/include/'
-  # export CXXFLAGS='-laoti_custom_ops -lbackend_with_compiler -lc10 -lgomp-98b21ff3 -ljitbackend_test -lnnapi_backend -lshm -ltorch -ltorch_cpu -ltorch_global_deps -ltorch_python -ltorchbind_test'
   cargo run
 #+end_src
 
@@ -750,17 +745,17 @@ res = torch.jit.trace(
           .include(library_path)
           .compile("main");
 
-      // println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
       println!("cargo:rustc-link-arg=-ltorch");
-      // println!("cargo:rustc-link-arg=-laoti_custom_ops");
       println!("cargo:rustc-link-arg=-lc10");
+      println!("cargo:rustc-link-arg=-ltorch_cpu");
+      // println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
+      // println!("cargo:rustc-link-arg=-laoti_custom_ops");
       // println!("cargo:rustc-link-arg=-lgomp-98b21ff3");
       // println!("cargo:rustc-link-arg=-lbackend_with_compiler");
       // println!("cargo:rustc-link-arg=-ljitbackend_test");
       // println!("cargo:rustc-link-arg=-lnnapi_backend");
       // println!("cargo:rustc-link-arg=-lshm");
       // println!("cargo:rustc-link-arg=-ltorch");
-      println!("cargo:rustc-link-arg=-ltorch_cpu");
       // println!("cargo:rustc-link-arg=-ltorch_global_deps");
       // println!("cargo:rustc-link-arg=-ltorch_python");
       // println!("cargo:rustc-link-arg=-ltorchbind_test");

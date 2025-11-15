@@ -15,6 +15,7 @@ BATCH_SIZE = 4
 import einops
 import timm
 import torch
+from torch.export.dynamic_shapes import Dim
 
 
 def export_to_dynamo(path_file_out):
@@ -32,10 +33,16 @@ def export_to_dynamo(path_file_out):
             dtype=torch.float32,
         )
         y = model(x)
+
+        dynamic_shapes = {
+            "x": (Dim.DYNAMIC, Dim.STATIC),
+        }
         exported_module = torch.export.export(
-            mod=model,
-            args=(x,),
-            strict=True,
+            model._orig_mod,
+            (x,),
+            dynamic_shapes=dynamic_shapes,
+            # strict=True,
+            # dynamic_shapes=dynamic_shapes,
         )
 
         output_path = torch._inductor.aoti_compile_and_package(
@@ -96,7 +103,10 @@ class model_wrapper(torch.nn.Module):
             dtype=torch.float32,
         )
 
-    def forward(self, x):
+    def forward(
+        self,
+        x: torch.Tensor,
+    ):
         x = self.L1(x)
         return x
 
