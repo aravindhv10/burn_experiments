@@ -333,7 +333,7 @@
         && echo 'DONE apt-get stuff' ;
 #+end_src
 
-**** Install apt stuff
+**** Install libtorch
 #+begin_src conf :tangle ./Dockerfile_rust_libtorch
   RUN aria2c -c -x16 -j16 'https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.9.0%2Bcpu.zip'
   RUN unzip './libtorch-shared-with-deps-2.9.0+cpu.zip'
@@ -353,6 +353,11 @@
       && cd ../.. \
       && cd .. \
       && echo 'Done Install libtorch' ;
+#+end_src
+
+**** Install bindgen
+#+begin_src conf :tangle ./Dockerfile_rust_libtorch
+  RUN cargo install bindgen-cli
 #+end_src
 
 ** Dockerfile finalizing
@@ -676,11 +681,16 @@ res = torch.jit.trace(
 #+end_src
 
 ** Actual code
+
+*** Outputs from bindgen
 #+begin_src rust :tangle ./src,main.rs
   unsafe extern "C" {
-  fn myfun() ;
+      pub fn myfun();
   }
+#+end_src
 
+*** Actual rust parts
+#+begin_src rust :tangle ./src,main.rs
   fn main() {
       println!("asd") ;
       unsafe {

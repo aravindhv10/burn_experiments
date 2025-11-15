@@ -29,3 +29,5 @@ RUN \
     && cd ../.. \
     && cd .. \
     && echo 'Done Install libtorch' ;
+
+RUN cargo install bindgen-cli

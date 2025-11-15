@@ -1,5 +1,5 @@
 unsafe extern "C" {
-fn myfun() ;
+    pub fn myfun();
 }
 
 fn main() {
