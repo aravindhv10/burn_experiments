@@ -10,9 +10,9 @@ g++ \
     './tmp.cpp' -o './tmp.exe' \
     './tmp/main.o' \
     -ltorch \
+    -ltorch_cpu \
     -lc10 \
 ;
-    # -ltorch_cpu \
     # -laoti_custom_ops \
     # -lbackend_with_compiler \
     # -lgomp-98b21ff3 \
