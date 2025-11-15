@@ -1,12 +1,15 @@
 extern "C" {
 
+unsigned long constexpr INPUT_SIZE = 100;
+unsigned long constexpr OUTPUT_SIZE = 4;
+
 struct arg_input {
-  float val[100];
+  float val[INPUT_SIZE];
 };
 
 struct arg_output {
-  float val[4];
+  float val[OUTPUT_SIZE];
 };
 
-arg_output torchmain(arg_input);
+arg_output torchmain(arg_input const);
 }

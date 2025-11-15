@@ -637,27 +637,30 @@
 
   extern "C" {
 
+  unsigned long constexpr INPUT_SIZE = 100;
+  unsigned long constexpr OUTPUT_SIZE = 4;
+
   struct arg_input {
-    float val[100];
+    float val[INPUT_SIZE];
   };
 
   struct arg_output {
-    float val[4];
+    float val[OUTPUT_SIZE];
   };
 
-  arg_output torchmain(arg_input in) {
+  arg_output torchmain(arg_input const in) {
     static c10::InferenceMode mode;
     static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
 
-    std::vector<torch::Tensor> inputs = {torch::zeros({1, 100}, at::kCPU)};
-    for (int i = 0; i < 100; i++) {
+    std::vector<torch::Tensor> inputs = {torch::zeros({1, INPUT_SIZE}, at::kCPU)};
+    for (int i = 0; i < INPUT_SIZE; i++) {
       inputs[0][0][i] = in.val[i];
     }
 
     std::vector<torch::Tensor> outputs = loader.run(inputs);
 
     arg_output out;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < OUTPUT_SIZE; i++) {
       out.val[i] = outputs[0][0][i].item<float>();
     }
     return out;
@@ -669,15 +672,18 @@
 #+begin_src c++ :tangle ./src,main.hpp
   extern "C" {
 
+  unsigned long constexpr INPUT_SIZE = 100;
+  unsigned long constexpr OUTPUT_SIZE = 4;
+
   struct arg_input {
-    float val[100];
+    float val[INPUT_SIZE];
   };
 
   struct arg_output {
-    float val[4];
+    float val[OUTPUT_SIZE];
   };
 
-  arg_output torchmain(arg_input);
+  arg_output torchmain(arg_input const);
   }
 #+end_src
 
@@ -846,6 +852,7 @@
 
       unsafe {
       let res = torchmain(input);
+          println!("{:?}",res);
       }
   }
 #+end_src

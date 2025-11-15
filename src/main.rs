@@ -44,5 +44,6 @@ fn main() {
 
     unsafe {
     let res = torchmain(input);
+        println!("{:?}",res);
     }
 }
