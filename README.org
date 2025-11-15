@@ -448,6 +448,7 @@
         && apt-get -y update \
         && apt-get install -y \
             'cmake' \
+            'libclang-dev' \
             'neovim' \
             'python3' \
             'python3-dev' \
@@ -603,6 +604,7 @@ res = torch.jit.trace(
   edition = "2024"
 
   [build-dependencies]
+  bindgen = "0.72.1"
   cc = { version = "1.2.46", features = ["jobserver", "parallel"] }
 
   # [dependencies]
@@ -635,10 +637,10 @@ res = torch.jit.trace(
 ** Actual file
 #+begin_src rust :tangle ./build.rs
   fn main() {
-  cc::Build::new()
-      .cpp(true)
-      .file("main.cpp")
-      .compile("main");
+      cc::Build::new()
+          .cpp(true)
+          .file("main.cpp")
+          .compile("main");
   }
 #+end_src
 
@@ -647,14 +649,22 @@ res = torch.jit.trace(
 ** Add file to git
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
   S 'src,main.cpp' 'src/main.cpp'
+  S 'src,main.hpp' 'src/main.hpp'
 #+end_src
 
 ** Actual file
-#+begin_src c++ :tangle ./main.cpp
+#+begin_src c++ :tangle ./src,main.cpp
   #include "stdio.h"
 
   extern "C" {
   void myfun() { printf("asd %d\n", 5 + 5); }
+  }
+#+end_src
+
+** Header file
+#+begin_src c++ :tangle ./src,main.hpp
+  extern "C" {
+  void myfun();
   }
 #+end_src
 

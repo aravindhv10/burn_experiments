@@ -1,6 +1,6 @@
 fn main() {
-cc::Build::new()
-    .cpp(true)
-    .file("main.cpp")
-    .compile("main");
+    cc::Build::new()
+        .cpp(true)
+        .file("main.cpp")
+        .compile("main");
 }
