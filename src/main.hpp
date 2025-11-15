@@ -1,3 +1,3 @@
 extern "C" {
-void myfun();
+  int torchmain();
 }

@@ -1,10 +1,10 @@
 unsafe extern "C" {
-    pub fn myfun();
+    pub fn torchmain();
 }
 
 fn main() {
     println!("asd") ;
     unsafe {
-    myfun();
+    torchmain();
     }
 }

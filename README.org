@@ -594,6 +594,87 @@ res = torch.jit.trace(
     example_inputs=x,
 )
 
+* C++ program
+
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  S 'src,main.cpp' 'src/main.cpp'
+  S 'src,main.hpp' 'src/main.hpp'
+  G 'compile_g++.sh'
+#+end_src
+
+** Actual file
+#+begin_src c++ :tangle ./src,main.cpp
+  #include <iostream>
+  #include <vector>
+
+  #include <torch/torch.h>
+  #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
+
+  extern "C" {
+  int torchmain() {
+      c10::InferenceMode mode;
+
+      torch::inductor::AOTIModelPackageLoader loader("out.pt2");
+      // Assume running on CUDA
+      std::vector<torch::Tensor> inputs = {torch::randn({4, 100}, at::kCPU)};
+      std::vector<torch::Tensor> outputs = loader.run(inputs);
+      std::cout << "Result from the first inference:"<< std::endl;
+      std::cout << outputs[0] << std::endl;
+
+      return 0;
+  }
+  }
+#+end_src
+
+** Header file
+#+begin_src c++ :tangle ./src,main.hpp
+  extern "C" {
+    int torchmain();
+  }
+#+end_src
+
+** tmp testing file
+#+begin_src c++ :tangle ./tmp.cpp
+
+  extern "C" {
+    int torchmain();
+  }
+
+  int main(){
+    torchmain();
+    return 0;
+  }
+#+end_src
+
+
+** Script to compile
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./compile_g++.sh
+  mkdir -pv -- './lib/' './tmp/'
+  g++ \
+      './src/main.cpp' -o './tmp/main.o' \
+      -c -fPIC \
+      '-I/usr/include/torch/csrc/api/include/' \
+  ;
+
+  g++ \
+      './tmp.cpp' -o './tmp.exe' \
+      './tmp/main.o' \
+      -laoti_custom_ops \
+      -lbackend_with_compiler \
+      -lc10 \
+      -lgomp-98b21ff3 \
+      -ljitbackend_test \
+      -lnnapi_backend \
+      -lshm \
+      -ltorch \
+      -ltorch_cpu \
+      -ltorch_global_deps \
+      -ltorch_python \
+      -ltorchbind_test \
+  ;
+#+end_src
+
 * Cargo.toml
 
 ** Add the file to git
@@ -628,7 +709,6 @@ res = torch.jit.trace(
 ** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-  # export LIBTORCH="$(realpath .)/libtorch"
   cargo run
 #+end_src
 
@@ -649,29 +729,6 @@ res = torch.jit.trace(
   }
 #+end_src
 
-* C++ program
-
-** Add file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  S 'src,main.cpp' 'src/main.cpp'
-  S 'src,main.hpp' 'src/main.hpp'
-#+end_src
-
-** Actual file
-#+begin_src c++ :tangle ./src,main.cpp
-  #include "stdio.h"
-
-  extern "C" {
-  void myfun() { printf("asd %d\n", 5 + 5); }
-  }
-#+end_src
-
-** Header file
-#+begin_src c++ :tangle ./src,main.hpp
-  extern "C" {
-  void myfun();
-  }
-#+end_src
 
 * Main rust code
 
@@ -685,7 +742,7 @@ res = torch.jit.trace(
 *** Outputs from bindgen
 #+begin_src rust :tangle ./src,main.rs
   unsafe extern "C" {
-      pub fn myfun();
+      pub fn torchmain();
   }
 #+end_src
 
@@ -694,7 +751,7 @@ res = torch.jit.trace(
   fn main() {
       println!("asd") ;
       unsafe {
-      myfun();
+      torchmain();
       }
   }
 #+end_src
