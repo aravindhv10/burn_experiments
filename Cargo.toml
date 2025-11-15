@@ -3,7 +3,10 @@ name = "burn_test"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[build-dependencies]
+cc = { version = "1.2.46", features = ["jobserver", "parallel"] }
+
+# [dependencies]
 # tch = { version = "0.22.0", path = "../../LaurentMazare/tch-rs", features = ["cpython", "memmap2"] }
-tch = { version = "0.22.0", features = ["cpython", "memmap2"] }
+# tch = { version = "0.22.0", features = ["cpython", "memmap2"] }
 # aotinductor = "0.1.2"
