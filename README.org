@@ -651,14 +651,14 @@
 
     std::vector<torch::Tensor> inputs = {torch::zeros({1, 100}, at::kCPU)};
     for (int i = 0; i < 100; i++) {
-      inputs[0][i] = in.val[i];
+      inputs[0][0][i] = in.val[i];
     }
 
     std::vector<torch::Tensor> outputs = loader.run(inputs);
 
     arg_output out;
     for (int i = 0; i < 4; i++) {
-      out.val[i] = outputs[0][i];
+      out.val[i] = outputs[0][0][i].item<float>();
     }
     return out;
   }
