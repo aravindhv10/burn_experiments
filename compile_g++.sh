@@ -9,16 +9,16 @@ g++ \
 g++ \
     './tmp.cpp' -o './tmp.exe' \
     './tmp/main.o' \
-    -laoti_custom_ops \
-    -lbackend_with_compiler \
-    -lc10 \
-    -lgomp-98b21ff3 \
-    -ljitbackend_test \
-    -lnnapi_backend \
-    -lshm \
     -ltorch \
-    -ltorch_cpu \
-    -ltorch_global_deps \
-    -ltorch_python \
-    -ltorchbind_test \
+    -lc10 \
 ;
+    # -ltorch_cpu \
+    # -laoti_custom_ops \
+    # -lbackend_with_compiler \
+    # -lgomp-98b21ff3 \
+    # -ljitbackend_test \
+    # -lnnapi_backend \
+    # -lshm \
+    # -ltorch_global_deps \
+    # -ltorch_python \
+    # -ltorchbind_test \

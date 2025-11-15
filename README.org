@@ -605,7 +605,7 @@ res = torch.jit.trace(
 
 ** Actual file
 
-*** Testing junk
+*** COMMENT Testing junk
 #+begin_src c++ :tangle ./src,main.cpp
   #include "stdio.h"
   #include <iostream>
@@ -622,7 +622,7 @@ res = torch.jit.trace(
   }
 #+end_src
 
-*** COMMENT Torch
+*** Torch
 #+begin_src c++ :tangle ./src,main.cpp
   #include <iostream>
   #include <vector>
@@ -678,19 +678,19 @@ res = torch.jit.trace(
   g++ \
       './tmp.cpp' -o './tmp.exe' \
       './tmp/main.o' \
-      -laoti_custom_ops \
-      -lbackend_with_compiler \
-      -lc10 \
-      -lgomp-98b21ff3 \
-      -ljitbackend_test \
-      -lnnapi_backend \
-      -lshm \
       -ltorch \
-      -ltorch_cpu \
-      -ltorch_global_deps \
-      -ltorch_python \
-      -ltorchbind_test \
+      -lc10 \
   ;
+      # -ltorch_cpu \
+      # -laoti_custom_ops \
+      # -lbackend_with_compiler \
+      # -lgomp-98b21ff3 \
+      # -ljitbackend_test \
+      # -lnnapi_backend \
+      # -lshm \
+      # -ltorch_global_deps \
+      # -ltorch_python \
+      # -ltorchbind_test \
 #+end_src
 
 * Cargo.toml
@@ -750,20 +750,20 @@ res = torch.jit.trace(
           .include(library_path)
           .compile("main");
 
-      println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
+      // println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
       println!("cargo:rustc-link-arg=-ltorch");
       println!("cargo:rustc-link-arg=-laoti_custom_ops");
-      println!("cargo:rustc-link-arg=-lbackend_with_compiler");
       println!("cargo:rustc-link-arg=-lc10");
-      println!("cargo:rustc-link-arg=-lgomp-98b21ff3");
-      println!("cargo:rustc-link-arg=-ljitbackend_test");
-      println!("cargo:rustc-link-arg=-lnnapi_backend");
-      println!("cargo:rustc-link-arg=-lshm");
-      println!("cargo:rustc-link-arg=-ltorch");
-      println!("cargo:rustc-link-arg=-ltorch_cpu");
-      println!("cargo:rustc-link-arg=-ltorch_global_deps");
-      println!("cargo:rustc-link-arg=-ltorch_python");
-      println!("cargo:rustc-link-arg=-ltorchbind_test");
+      // println!("cargo:rustc-link-arg=-lgomp-98b21ff3");
+      // println!("cargo:rustc-link-arg=-lbackend_with_compiler");
+      // println!("cargo:rustc-link-arg=-ljitbackend_test");
+      // println!("cargo:rustc-link-arg=-lnnapi_backend");
+      // println!("cargo:rustc-link-arg=-lshm");
+      // println!("cargo:rustc-link-arg=-ltorch");
+      // println!("cargo:rustc-link-arg=-ltorch_cpu");
+      // println!("cargo:rustc-link-arg=-ltorch_global_deps");
+      // println!("cargo:rustc-link-arg=-ltorch_python");
+      // println!("cargo:rustc-link-arg=-ltorchbind_test");
   }
 #+end_src
 
