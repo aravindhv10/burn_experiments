@@ -11,5 +11,5 @@ struct arg_output {
   float val[OUTPUT_SIZE];
 };
 
-arg_output do_infer(arg_input const);
+arg_output do_infer(arg_input const *);
 }

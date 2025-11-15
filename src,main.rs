@@ -23,7 +23,7 @@ pub struct arg_output {
 //     ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
 // };
 unsafe extern "C" {
-    pub fn do_infer(arg1: arg_input) -> arg_output;
+    pub fn do_infer(arg1: *const arg_input) -> arg_output;
 }
 
 fn main() {
@@ -41,7 +41,7 @@ fn main() {
     };
 
     unsafe {
-    let res = do_infer(input);
+    let res = do_infer(&input);
         println!("{:?}",res);
     }
 }

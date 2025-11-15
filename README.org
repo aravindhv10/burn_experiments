@@ -648,13 +648,13 @@
     float val[OUTPUT_SIZE];
   };
 
-  arg_output do_infer(arg_input const in) {
+  arg_output do_infer(arg_input const *in) {
     static c10::InferenceMode mode;
     static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
 
     std::vector<torch::Tensor> inputs = {torch::zeros({1, INPUT_SIZE}, at::kCPU)};
     for (int i = 0; i < INPUT_SIZE; i++) {
-      inputs[0][0][i] = in.val[i];
+      inputs[0][0][i] = in->val[i];
     }
 
     std::vector<torch::Tensor> outputs = loader.run(inputs);
@@ -663,6 +663,7 @@
     for (int i = 0; i < OUTPUT_SIZE; i++) {
       out.val[i] = outputs[0][0][i].item<float>();
     }
+
     return out;
   }
   }
@@ -683,7 +684,7 @@
     float val[OUTPUT_SIZE];
   };
 
-  arg_output do_infer(arg_input const);
+  arg_output do_infer(arg_input const *);
   }
 #+end_src
 
@@ -828,7 +829,7 @@
   //     ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
   // };
   unsafe extern "C" {
-      pub fn do_infer(arg1: arg_input) -> arg_output;
+      pub fn do_infer(arg1: *const arg_input) -> arg_output;
   }
 #+end_src
 
@@ -849,7 +850,7 @@
       };
 
       unsafe {
-      let res = do_infer(input);
+      let res = do_infer(&input);
           println!("{:?}",res);
       }
   }

@@ -17,13 +17,13 @@ struct arg_output {
   float val[OUTPUT_SIZE];
 };
 
-arg_output do_infer(arg_input const in) {
+arg_output do_infer(arg_input const *in) {
   static c10::InferenceMode mode;
   static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
 
   std::vector<torch::Tensor> inputs = {torch::zeros({1, INPUT_SIZE}, at::kCPU)};
   for (int i = 0; i < INPUT_SIZE; i++) {
-    inputs[0][0][i] = in.val[i];
+    inputs[0][0][i] = in->val[i];
   }
 
   std::vector<torch::Tensor> outputs = loader.run(inputs);
@@ -32,6 +32,7 @@ arg_output do_infer(arg_input const in) {
   for (int i = 0; i < OUTPUT_SIZE; i++) {
     out.val[i] = outputs[0][0][i].item<float>();
   }
+
   return out;
 }
 }
