@@ -604,6 +604,25 @@ res = torch.jit.trace(
 #+end_src
 
 ** Actual file
+
+*** Testing junk
+#+begin_src c++ :tangle ./src,main.cpp
+  #include "stdio.h"
+  #include <iostream>
+  #include <vector>
+
+  #include <torch/torch.h>
+  #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
+  extern "C" {
+  int torchmain() {
+    printf("Working...\n");
+
+      return 0;
+  }
+  }
+#+end_src
+
+*** COMMENT Torch
 #+begin_src c++ :tangle ./src,main.cpp
   #include <iostream>
   #include <vector>
@@ -636,7 +655,6 @@ res = torch.jit.trace(
 
 ** tmp testing file
 #+begin_src c++ :tangle ./tmp.cpp
-
   extern "C" {
     int torchmain();
   }
@@ -690,7 +708,7 @@ res = torch.jit.trace(
   edition = "2024"
 
   [build-dependencies]
-  bindgen = "0.72.1"
+  # bindgen = "0.72.1"
   cc = { version = "1.2.46", features = ["jobserver", "parallel"] }
 
   # [dependencies]
@@ -709,6 +727,8 @@ res = torch.jit.trace(
 ** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
   cd "$(dirname -- "${0}")"
+  # export CXXFLAGS='-I/usr/include/torch/csrc/api/include/'
+  # export CXXFLAGS='-laoti_custom_ops -lbackend_with_compiler -lc10 -lgomp-98b21ff3 -ljitbackend_test -lnnapi_backend -lshm -ltorch -ltorch_cpu -ltorch_global_deps -ltorch_python -ltorchbind_test'
   cargo run
 #+end_src
 
@@ -722,13 +742,30 @@ res = torch.jit.trace(
 ** Actual file
 #+begin_src rust :tangle ./build.rs
   fn main() {
+      let library_path = std::path::Path::new("/usr/include/torch/csrc/api/include/");
+
       cc::Build::new()
           .cpp(true)
-          .file("main.cpp")
+          .file("src/main.cpp")
+          .include(library_path)
           .compile("main");
+
+      println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
+      println!("cargo:rustc-link-arg=-ltorch");
+      println!("cargo:rustc-link-arg=-laoti_custom_ops");
+      println!("cargo:rustc-link-arg=-lbackend_with_compiler");
+      println!("cargo:rustc-link-arg=-lc10");
+      println!("cargo:rustc-link-arg=-lgomp-98b21ff3");
+      println!("cargo:rustc-link-arg=-ljitbackend_test");
+      println!("cargo:rustc-link-arg=-lnnapi_backend");
+      println!("cargo:rustc-link-arg=-lshm");
+      println!("cargo:rustc-link-arg=-ltorch");
+      println!("cargo:rustc-link-arg=-ltorch_cpu");
+      println!("cargo:rustc-link-arg=-ltorch_global_deps");
+      println!("cargo:rustc-link-arg=-ltorch_python");
+      println!("cargo:rustc-link-arg=-ltorchbind_test");
   }
 #+end_src
-
 
 * Main rust code
 
