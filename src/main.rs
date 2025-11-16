@@ -27,17 +27,9 @@ unsafe extern "C" {
 }
 
 fn main() {
-    // unsafe {
-    // torchmain();
-    // }
-    let tmp_array: [f32;100] = (0..100)
-            .map(|i| ((i as f32)/100.0))
-            .collect::<Vec<f32>>() // Collect into a Vec first
-            .try_into()            // Then try to convert the Vec to a [f32; 100]
-            .unwrap_or_else(|_| panic!("Failed to create a 100-element array. This should not happen."));
 
     let input = arg_input {
-        val: tmp_array,
+        val: [0.0; f32],
     };
 
     unsafe {
