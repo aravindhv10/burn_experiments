@@ -220,23 +220,24 @@
     float val[OUTPUT_SIZE];
   };
 
-  arg_output do_infer(arg_input const *in) {
+  void do_infer(arg_input const *in, unsigned int batch_size, arg_output * out) {
     static c10::InferenceMode mode;
     static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
 
-    std::vector<torch::Tensor> inputs = {torch::zeros({1, INPUT_SIZE}, at::kCPU)};
-    for (int i = 0; i < INPUT_SIZE; i++) {
-      inputs[0][0][i] = in->val[i];
+    std::vector<torch::Tensor> inputs = {torch::zeros({batch_size, INPUT_SIZE}, at::kCPU)};
+    for(int j=0;j<batch_size;++j) {
+      for (int i=0;i<INPUT_SIZE;++i) {
+        inputs[0][j][i] = in[j].val[i];
+      }
     }
 
     std::vector<torch::Tensor> outputs = loader.run(inputs);
 
-    arg_output out;
-    for (int i = 0; i < OUTPUT_SIZE; i++) {
-      out.val[i] = outputs[0][0][i].item<float>();
+    for(int j=0;j<batch_size;++j) {
+      for (int i = 0; i < OUTPUT_SIZE; i++) {
+          out[j].val[i] = outputs[0][j][i].item<float>();
+      }
     }
-
-    return out;
   }
   }
 #+end_src
@@ -256,7 +257,7 @@
     float val[OUTPUT_SIZE];
   };
 
-  arg_output do_infer(arg_input const *);
+  void do_infer(arg_input const *in, unsigned int batch_size, arg_output * out) ;
   }
 #+end_src
 
@@ -303,19 +304,6 @@
 
   [build-dependencies]
   cc = { version = "1.2.46", features = ["jobserver", "parallel"] }
-#+end_src
-
-* Script to run the rust code
-
-** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  G 'run.sh'
-#+end_src
-
-** Actual file
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
-  cd "$(dirname -- "${0}")"
-  cargo run
 #+end_src
 
 * build.rs
@@ -371,41 +359,84 @@
   pub struct arg_input {
       pub val: [f32; 100usize],
   }
-  // #[allow(clippy::unnecessary_operation, clippy::identity_op)]
-  // const _: () = {
-  //     ["Size of arg_input"][::std::mem::size_of::<arg_input>() - 400usize];
-  //     ["Alignment of arg_input"][::std::mem::align_of::<arg_input>() - 4usize];
-  //     ["Offset of field: arg_input::val"][::std::mem::offset_of!(arg_input, val) - 0usize];
-  // };
+  #[allow(clippy::unnecessary_operation, clippy::identity_op)]
+  const _: () = {
+      ["Size of arg_input"][::std::mem::size_of::<arg_input>() - 400usize];
+      ["Alignment of arg_input"][::std::mem::align_of::<arg_input>() - 4usize];
+      ["Offset of field: arg_input::val"][::std::mem::offset_of!(arg_input, val) - 0usize];
+  };
   #[repr(C)]
   #[derive(Debug, Copy, Clone)]
   pub struct arg_output {
       pub val: [f32; 4usize],
   }
-  // #[allow(clippy::unnecessary_operation, clippy::identity_op)]
-  // const _: () = {
-  //     ["Size of arg_output"][::std::mem::size_of::<arg_output>() - 16usize];
-  //     ["Alignment of arg_output"][::std::mem::align_of::<arg_output>() - 4usize];
-  //     ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
-  // };
+  #[allow(clippy::unnecessary_operation, clippy::identity_op)]
+  const _: () = {
+      ["Size of arg_output"][::std::mem::size_of::<arg_output>() - 16usize];
+      ["Alignment of arg_output"][::std::mem::align_of::<arg_output>() - 4usize];
+      ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
+  };
   unsafe extern "C" {
-      pub fn do_infer(arg1: *const arg_input) -> arg_output;
+      pub fn do_infer(
+          in_: *const arg_input,
+          batch_size: ::std::os::raw::c_uint,
+          out: *mut arg_output,
+      );
   }
 #+end_src
 
 *** Actual rust parts
 #+begin_src rust :tangle ./src,main.rs
-  fn main() {
+  fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
+      let tmp = arg_output {
+        val: [0.0; 4usize]
+      } ;
 
-      let input = arg_input {
-          val: [0.0; f32],
-      };
+      let mut output = Vec::<arg_output>::new();
+
+      for _ in 0..input.len() {
+          output.push(tmp);
+      }
 
       unsafe {
-      let res = do_infer(&input);
-          println!("{:?}",res);
+          do_infer(input.as_ptr(),input.len() as u32,output.as_mut_ptr());
       }
+
+      output
   }
+
+  fn main() {
+
+      let mut input = arg_input {
+          val: [0.0; 100usize],
+      };
+
+      for i in 0..100 {
+          input.val[i] = (i as f32) / 100.0 ;
+      }
+
+      let vec_input = vec![input, input, input] ;
+      let vec_output = run_inference(vec_input);
+      println!("{:?}",vec_output);
+
+      // unsafe {
+      // let res = do_infer(&input);
+      //     println!("{:?}",res);
+      // }
+  }
+#+end_src
+
+* Script to run the rust code
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  G 'run.sh'
+#+end_src
+
+** Actual file
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
+  cd "$(dirname -- "${0}")"
+  cargo run
 #+end_src
 
 * COMMENT Work space
