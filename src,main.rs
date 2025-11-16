@@ -61,9 +61,4 @@ fn main() {
     let vec_input = vec![input, input, input] ;
     let vec_output = run_inference(vec_input);
     println!("{:?}",vec_output);
-
-    // unsafe {
-    // let res = do_infer(&input);
-    //     println!("{:?}",res);
-    // }
 }
