@@ -1,80 +1,191 @@
-* Functions for using
+* Scripts to manage
 
-** Primitive functions
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  P_TOUCH(){
+** Important functions
+
+*** Primitive functions
+
+**** touch files
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  P_TOUCH () {
       test -e "./${1}" || touch "./${1}"
-  }
-
-  P_GITADD(){
-      git add "./${1}"
-  }
-
-  P_MKDIR(){
-      mkdir -pv -- "./${1}"
-  }
-
-  P_CLEAN(){
-      rm -vf -- "./${1}"
-  }
-
-  P_SET(){
-      mkdir -pv -- "$('dirname' -- "./${2}")"
-      cp "./${1}" "./${2}"
   }
 #+end_src
 
+**** add files to GIT
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  P_GITADD () {
+      git add "./${1}"
+  }
+#+end_src
+
+**** delete files
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  P_CLEAN () {
+      rm -vf -- "./${1}"
+  }
+#+end_src
+
+**** Read the file
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  P_READ () {
+      cat "./${1}"
+  }
+#+end_src
+
+*** Compound functions
+
+**** add files to GIT
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD () {
+      P_TOUCH "${1}"
+      P_GITADD "${1}"
+  }
+#+end_src
+
+** PYTHON
+
+*** PRIMITIVE
+
+**** Process the python file
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  P_PROCESS () {
+      expand | grep -v '^ *$' | grep -v '^#!/usr/bin/python3$' | ruff format - 
+  }
+#+end_src
+
+*** COMPOUND
+
+**** Read and process the file
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  READ_AND_PROCESS_FILE () {
+      P_TOUCH "${1}"
+      P_READ "${1}" | P_PROCESS
+  }
+#+end_src
+
+**** Process all python files
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  READ_ALL_PYTHON(){
+      echo '#!/usr/bin/env python3'
+      READ_AND_PROCESS_FILE "${1}.config.py"
+      READ_AND_PROCESS_FILE "${1}.import.py" | sort | uniq
+      READ_AND_PROCESS_FILE "${1}.function.py"
+      READ_AND_PROCESS_FILE "${1}.class.py"
+      READ_AND_PROCESS_FILE "${1}.execute.py"
+  }
+
+  CLEAN_ALL_PYTHON(){
+      P_CLEAN "${1}.config.py"
+      P_CLEAN "${1}.import.py"
+      P_CLEAN "${1}.function.py"
+      P_CLEAN "${1}.class.py"
+      P_CLEAN "${1}.execute.py"
+  }
+
+  PREPARE_PYTHON_FILE() {
+      READ_ALL_PYTHON "${1}" | P_PROCESS > "./${1}.py"
+      CLEAN_ALL_PYTHON "${1}"
+      chmod +x "./${1}.py"
+      GITADD "${1}.py"
+  }
+#+end_src
+
+** Do the basic stuff
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'README.org'
+  P_CLEAN '.git.sh'
+  P_CLEAN '#README.org#'
+  P_CLEAN 'README.org~'
+#+end_src
+
+* Functions for using
+
 ** Compound functions
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   G(){
       P_TOUCH "${1}"
       P_GITADD "${1}"
   }
-
-  S(){
-      G "${1}"
-      P_SET "${1}" "${2}"
-      G "${2}"
-  }
 #+end_src
 
 ** Clean the working file
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   P_CLEAN './.git.sh'
 #+end_src
 
 ** Add this file
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   G 'README.org'
 #+end_src
 
-* Container image related functions
+* Host scripts
 
-** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  G 'important_functions.sh'
+** Important envs
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes  :tangle ./host.image_names.sh
+  IMAGE_NAME='debtestrustzshhelixpytorch'
 #+end_src
 
-** Actual script
+** Important functions
 
-*** Run container
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./important_functions.sh
+*** Build image
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes  :tangle ./host.image_names.sh
+  BUILD_CONTAINER () {
+      CMD='sudo -A docker'
+      which buildah && CMD='buildah'
+      ${CMD} build -t "${IMAGE_NAME}" -f "./Dockerfile"
+  }
+#+end_src
+
+*** Run image
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./host.image_names.sh
   RUN_CONTAINER () {
       CMD='sudo -A docker'
       which podman && CMD='podman'
-      ${CMD} run -it --rm -v "$(realpath .):/data" debtestrustzshhelixpytorch zsh
+      ${CMD} run -it --rm \
+          -v "$(realpath .):/data" \
+          "${IMAGE_NAME}" zsh ;
   }
+#+end_src
+
+* Scripts to build and run
+
+** Build image
+
+*** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'image_build.sh'
+#+end_src
+
+*** Actual script
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_build.sh
+  cd "$(dirname -- "${0}")"
+  . './host.image_names.sh'
+  BUILD_CONTAINER
+#+end_src
+
+** Run image
+
+*** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'image_run.sh'
+#+end_src
+
+*** Actual script
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
+  cd "$(dirname -- "${0}")"
+  . './host.image_names.sh'
+  RUN_CONTAINER
 #+end_src
 
 * Python file to produce the model file
 
 ** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   G 'main.py'
 #+end_src
 
 ** Actual file
-#+begin_src python :shebang #!/usr/bin/env python3 :results output :tangle ./main.py
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.py
   import os
 
   try:
@@ -193,14 +304,14 @@
 * C++ program
 
 ** Add file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  S 'src,main.cpp' 'src/main.cpp'
-  S 'src,main.hpp' 'src/main.hpp'
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  G 'src/main.cpp'
+  G 'src/main.hpp'
   G 'compile_g++.sh'
 #+end_src
 
 ** Actual file
-#+begin_src c++ :tangle ./src,main.cpp
+#+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   #include <iostream>
   #include <vector>
 
@@ -243,7 +354,7 @@
 #+end_src
 
 ** Header file
-#+begin_src c++ :tangle ./src,main.hpp
+#+begin_src c++ :mkdirp yes :tangle ./src/main.hpp
   extern "C" {
 
   unsigned long constexpr INPUT_SIZE = 100;
@@ -262,7 +373,7 @@
 #+end_src
 
 ** Script to compile
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./compile_g++.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile_g++.sh
   mkdir -pv -- './lib/' './tmp/'
   g++ \
       './src/main.cpp' -o './tmp/main.o' \
@@ -291,12 +402,12 @@
 * Cargo.toml
 
 ** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   G 'Cargo.toml'
 #+end_src
 
 ** Actual file
-#+begin_src toml :tangle ./Cargo.toml
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   [package]
   name = "burn_test"
   version = "0.1.0"
@@ -309,12 +420,12 @@
 * build.rs
 
 ** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   G 'build.rs'
 #+end_src
 
 ** Actual file
-#+begin_src rust :tangle ./build.rs
+#+begin_src rust :mkdirp yes :tangle ./build.rs
   fn main() {
       let library_path = std::path::Path::new("/usr/include/torch/csrc/api/include/");
 
@@ -344,14 +455,14 @@
 * Main rust code
 
 ** Add files to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  S 'src,main.rs' 'src/main.rs'
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  G 'src/main.rs'
 #+end_src
 
 ** Actual code
 
 *** Outputs from bindgen
-#+begin_src rust :tangle ./src,main.rs
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
   pub const INPUT_SIZE: ::std::os::raw::c_ulong = 100;
   pub const OUTPUT_SIZE: ::std::os::raw::c_ulong = 4;
   #[repr(C)]
@@ -386,7 +497,7 @@
 #+end_src
 
 *** Actual rust parts
-#+begin_src rust :tangle ./src,main.rs
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
   fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
       let tmp = arg_output {
         val: [0.0; 4usize]
@@ -424,12 +535,12 @@
 * Script to run the rust code
 
 ** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   G 'run.sh'
 #+end_src
 
 ** Actual file
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./run.sh
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
   cargo run
 #+end_src
