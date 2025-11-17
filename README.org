@@ -120,6 +120,11 @@
 
 * Host scripts
 
+** Add this file
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  G 'host.image_names.sh'
+#+end_src
+
 ** Important envs
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes  :tangle ./host.image_names.sh
   IMAGE_NAME='debtestrustzshhelixpytorch'
@@ -132,7 +137,10 @@
   BUILD_CONTAINER () {
       CMD='sudo -A docker'
       which buildah && CMD='buildah'
-      ${CMD} build -t "${IMAGE_NAME}" -f "./Dockerfile"
+
+      ${CMD} build \
+          -t "${IMAGE_NAME}" \
+          -f "./Dockerfile" ;
   }
 #+end_src
 
@@ -141,6 +149,7 @@
   RUN_CONTAINER () {
       CMD='sudo -A docker'
       which podman && CMD='podman'
+
       ${CMD} run -it --rm \
           -v "$(realpath .):/data" \
           "${IMAGE_NAME}" zsh ;
