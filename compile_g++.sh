@@ -1,12 +1,12 @@
 #!/bin/sh
 mkdir -pv -- './lib/' './tmp/'
-g++ \
+clang++ \
     './src/main.cpp' -o './tmp/main.o' \
     -c -fPIC \
     '-I/usr/include/torch/csrc/api/include/' \
 ;
 
-g++ \
+clang++ \
     './tmp.cpp' -o './tmp.exe' \
     './tmp/main.o' \
     -ltorch \
