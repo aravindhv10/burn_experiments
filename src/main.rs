@@ -31,34 +31,31 @@ unsafe extern "C" {
 }
 
 fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
-    let tmp = arg_output {
-      val: [0.0; 4usize]
-    } ;
+    let tmp = arg_output { val: [0.0; 4usize] };
 
-    let mut output = Vec::<arg_output>::new();
+    let mut output = Vec::<arg_output>::with_capacity(input.len());
 
     for _ in 0..input.len() {
         output.push(tmp);
     }
 
     unsafe {
-        do_infer(input.as_ptr(),input.len() as u32,output.as_mut_ptr());
+        do_infer(input.as_ptr(), input.len() as u32, output.as_mut_ptr());
     }
 
     output
 }
 
 fn main() {
-
     let mut input = arg_input {
         val: [0.0; 100usize],
     };
 
     for i in 0..100 {
-        input.val[i] = (i as f32) / 100.0 ;
+        input.val[i] = (i as f32) / 100.0;
     }
 
-    let vec_input = vec![input, input, input] ;
+    let vec_input = vec![input, input, input];
     let vec_output = run_inference(vec_input);
-    println!("{:?}",vec_output);
+    println!("{:?}", vec_output);
 }

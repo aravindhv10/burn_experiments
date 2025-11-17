@@ -11,5 +11,5 @@ struct arg_output {
   float val[OUTPUT_SIZE];
 };
 
-void do_infer(arg_input const *in, unsigned int batch_size, arg_output * out) ;
+void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) ;
 }
