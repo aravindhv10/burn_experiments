@@ -1,128 +1,17 @@
 * Scripts to manage
-
-** Important functions
-
-*** Primitive functions
-
-**** touch files
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  P_TOUCH () {
-      test -e "./${1}" || touch "./${1}"
-  }
-#+end_src
-
-**** add files to GIT
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  P_GITADD () {
-      git add "./${1}"
-  }
-#+end_src
-
-**** delete files
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  P_CLEAN () {
-      rm -vf -- "./${1}"
-  }
-#+end_src
-
-**** Read the file
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  P_READ () {
-      cat "./${1}"
-  }
-#+end_src
-
-*** Compound functions
-
-**** add files to GIT
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD () {
-      P_TOUCH "${1}"
-      P_GITADD "${1}"
-  }
-#+end_src
-
-** PYTHON
-
-*** PRIMITIVE
-
-**** Process the python file
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  P_PROCESS () {
-      expand | grep -v '^ *$' | grep -v '^#!/usr/bin/python3$' | ruff format - 
-  }
-#+end_src
-
-*** COMPOUND
-
-**** Read and process the file
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  READ_AND_PROCESS_FILE () {
-      P_TOUCH "${1}"
-      P_READ "${1}" | P_PROCESS
-  }
-#+end_src
-
-**** Process all python files
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  READ_ALL_PYTHON(){
-      echo '#!/usr/bin/env python3'
-      READ_AND_PROCESS_FILE "${1}.config.py"
-      READ_AND_PROCESS_FILE "${1}.import.py" | sort | uniq
-      READ_AND_PROCESS_FILE "${1}.function.py"
-      READ_AND_PROCESS_FILE "${1}.class.py"
-      READ_AND_PROCESS_FILE "${1}.execute.py"
-  }
-
-  CLEAN_ALL_PYTHON(){
-      P_CLEAN "${1}.config.py"
-      P_CLEAN "${1}.import.py"
-      P_CLEAN "${1}.function.py"
-      P_CLEAN "${1}.class.py"
-      P_CLEAN "${1}.execute.py"
-  }
-
-  PREPARE_PYTHON_FILE() {
-      READ_ALL_PYTHON "${1}" | P_PROCESS > "./${1}.py"
-      CLEAN_ALL_PYTHON "${1}"
-      chmod +x "./${1}.py"
-      GITADD "${1}.py"
-  }
-#+end_src
-
-** Do the basic stuff
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  . "${HOME}/important_functions.sh"
+  CLEAN '#README.org#'
+  CLEAN '.git.sh'
+  CLEAN 'README.org~'
   GITADD 'README.org'
-  P_CLEAN '.git.sh'
-  P_CLEAN '#README.org#'
-  P_CLEAN 'README.org~'
-#+end_src
-
-* Functions for using
-
-** Compound functions
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G(){
-      P_TOUCH "${1}"
-      P_GITADD "${1}"
-  }
-#+end_src
-
-** Clean the working file
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  P_CLEAN './.git.sh'
-#+end_src
-
-** Add this file
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'README.org'
 #+end_src
 
 * Host scripts
 
-** Add this file
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'host.image_names.sh'
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  GITADD 'host.image_names.sh'
 #+end_src
 
 ** Important envs
@@ -131,29 +20,24 @@
 #+end_src
 
 ** Important functions
-
-*** Run image
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./host.image_names.sh
   RUN_CONTAINER () {
       CMD='sudo -A docker'
       which podman && CMD='podman'
-
       ${CMD} run -it --rm \
           -v "$(realpath .):/data" \
           "${IMAGE_NAME}" zsh ;
   }
 #+end_src
 
-* Scripts to build and run
+* Scripts to run image
 
-** Run image
-
-*** Add file to git
+** Add file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   GITADD 'image_run.sh'
 #+end_src
 
-*** Actual script
+** Actual script
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
   cd "$(dirname -- "${0}")"
   . './host.image_names.sh'
@@ -164,7 +48,7 @@
 
 ** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'main.py'
+  GITADD 'main.py'
 #+end_src
 
 ** Actual file
@@ -288,10 +172,10 @@
 
 ** Add file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'src/main.cpp'
-  G 'src/main.hpp'
-  G 'compile_g++.sh'
-  G 'compile_commands.json'
+  GITADD 'src/main.cpp'
+  GITADD 'src/main.hpp'
+  GITADD 'compile_g++.sh'
+  GITADD 'compile_commands.json'
 #+end_src
 
 ** Actual file
@@ -408,7 +292,7 @@
 
 ** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'Cargo.toml'
+  GITADD 'Cargo.toml'
 #+end_src
 
 ** Actual file
@@ -426,7 +310,7 @@
 
 ** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'build.rs'
+  GITADD 'build.rs'
 #+end_src
 
 ** Actual file
@@ -461,7 +345,7 @@
 
 ** Add files to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'src/main.rs'
+  GITADD 'src/main.rs'
 #+end_src
 
 ** Actual code
@@ -534,14 +418,11 @@
   }
 #+end_src
 
-
-
-
 * Script to run the rust code
 
 ** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  G 'run.sh'
+  GITADD 'run.sh'
 #+end_src
 
 ** Actual file
