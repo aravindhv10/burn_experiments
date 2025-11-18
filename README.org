@@ -46,12 +46,14 @@
 
 * Python file to produce the model file
 
-** Add the file to git
+** Produce the model
+
+*** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   GITADD 'main.py'
 #+end_src
 
-** Actual file
+*** Actual file
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.py
   import os
 
@@ -72,7 +74,7 @@
   from torch.export.dynamic_shapes import Dim
 
 
-  def export_to_dynamo(path_file_out):
+  def produce_model(path_file_out):
       with torch.no_grad():
           model = model_wrapper()
           model = torch.compile(
@@ -99,12 +101,17 @@
               # dynamic_shapes=dynamic_shapes,
           )
 
-          output_path = torch._inductor.aoti_compile_and_package(
-              exported_module,
-              # [Optional] Specify the generated shared library path. If not specified,
-              # the generated artifact is stored in your system temp directory.
-              package_path=path_file_out + ".pt2",
+          torch.export.save(
+              ep = exported_module,
+              f = path_file_out + ".pt2",
           )
+
+          # output_path = torch._inductor.aoti_compile_and_package(
+          #     exported_module,
+          #     # [Optional] Specify the generated shared library path. If not specified,
+          #     # the generated artifact is stored in your system temp directory.
+          #     package_path=path_file_out + ".pt2",
+          # )
 
           # compiled_model = torch.compile(
           #     model=exported_module.module(),
@@ -114,11 +121,11 @@
           #     mode="max-autotune",
           # )
 
-          jit_module = torch.jit.trace(
-              func=exported_module.module(),
-              example_inputs=x,
-          )
-      jit_module.save(path_file_out + ".pt")
+          # jit_module = torch.jit.trace(
+          #     func=exported_module.module(),
+          #     example_inputs=x,
+          # )
+      # jit_module.save(path_file_out + ".pt")
 
 
   def export_to_onnx(path_file_out):
@@ -165,7 +172,40 @@
           return x
 
 
-  export_to_dynamo(path_file_out="out")
+  produce_model(path_file_out="model_input")
+#+end_src
+
+** Compile the model
+
+*** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'main.py'
+#+end_src
+
+*** Actual file
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.py
+  import os
+  import sys
+
+  INPUT_SIZE = 100
+  BATCH_SIZE = 4
+  import einops
+  import timm
+  import torch
+  from torch.export.dynamic_shapes import Dim
+
+
+  def compile_to_dynamo(path_file_in, path_file_out):
+      exported_module = torch.export.load(f=path_file_in + ".pt2")
+      output_path = torch._inductor.aoti_compile_and_package(
+          exported_module,
+          # [Optional] Specify the generated shared library path. If not specified,
+          # the generated artifact is stored in your system temp directory.
+          package_path=path_file_out + ".pt2",
+      )
+
+
+  compile_to_dynamo(path_file_in="model_input", path_file_out="model_output")
 #+end_src
 
 * C++ program

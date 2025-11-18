@@ -18,7 +18,7 @@ import torch
 from torch.export.dynamic_shapes import Dim
 
 
-def export_to_dynamo(path_file_out):
+def produce_model(path_file_out):
     with torch.no_grad():
         model = model_wrapper()
         model = torch.compile(
@@ -45,12 +45,17 @@ def export_to_dynamo(path_file_out):
             # dynamic_shapes=dynamic_shapes,
         )
 
-        output_path = torch._inductor.aoti_compile_and_package(
-            exported_module,
-            # [Optional] Specify the generated shared library path. If not specified,
-            # the generated artifact is stored in your system temp directory.
-            package_path=path_file_out + ".pt2",
+        torch.export.save(
+            ep = exported_module,
+            f = path_file_out + ".pt2",
         )
+
+        # output_path = torch._inductor.aoti_compile_and_package(
+        #     exported_module,
+        #     # [Optional] Specify the generated shared library path. If not specified,
+        #     # the generated artifact is stored in your system temp directory.
+        #     package_path=path_file_out + ".pt2",
+        # )
 
         # compiled_model = torch.compile(
         #     model=exported_module.module(),
@@ -60,11 +65,11 @@ def export_to_dynamo(path_file_out):
         #     mode="max-autotune",
         # )
 
-        jit_module = torch.jit.trace(
-            func=exported_module.module(),
-            example_inputs=x,
-        )
-    jit_module.save(path_file_out + ".pt")
+        # jit_module = torch.jit.trace(
+        #     func=exported_module.module(),
+        #     example_inputs=x,
+        # )
+    # jit_module.save(path_file_out + ".pt")
 
 
 def export_to_onnx(path_file_out):
@@ -111,4 +116,4 @@ class model_wrapper(torch.nn.Module):
         return x
 
 
-export_to_dynamo(path_file_out="out")
+produce_model(path_file_out="model_input")
