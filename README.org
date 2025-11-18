@@ -239,7 +239,7 @@
 
   void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) {
     static c10::InferenceMode mode;
-    static torch::inductor::AOTIModelPackageLoader loader("out.pt2");
+    static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
 
     std::vector<torch::Tensor> inputs = {
         torch::zeros({batch_size, INPUT_SIZE}, at::kCPU)};
