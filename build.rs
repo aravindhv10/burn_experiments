@@ -5,6 +5,9 @@ fn main() {
         .cpp(true)
         .file("src/main.cpp")
         .include(library_path)
+        .flag("-Ofast")
+        .flag("-mtune=native")
+        .flag("-march=native")
         .compile("main");
 
     println!("cargo:rustc-link-arg=-ltorch");

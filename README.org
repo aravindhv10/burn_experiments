@@ -362,6 +362,9 @@
           .cpp(true)
           .file("src/main.cpp")
           .include(library_path)
+          .flag("-Ofast")
+          .flag("-mtune=native")
+          .flag("-march=native")
           .compile("main");
 
       println!("cargo:rustc-link-arg=-ltorch");
@@ -468,7 +471,8 @@
 ** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-  cargo run
+  export RUSTFLAGS="-C target-cpu=native"
+  cargo run --release
 #+end_src
 
 * COMMENT Work space
