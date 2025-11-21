@@ -16,7 +16,7 @@
 
 ** Important envs
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes  :tangle ./host.image_names.sh
-  IMAGE_NAME='debtestrustzshhelixpytorch'
+  IMAGE_NAME='burnexps'
 #+end_src
 
 ** Important functions
@@ -561,7 +561,7 @@
   }
 #+end_src
 
-**** COMMENT Remaining wrappers
+**** Actual model wrappers
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   use serde::Serialize;
 
@@ -578,30 +578,26 @@
 
   use crate::mylib::image_processor;
 
-  const MAX_BATCH: usize = 16;
-  const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
-  const MODEL_PATH: &str = "./model.onnx";
-
-  const IMAGE_RESOLUTION: u32 = 448;
-  const CLASS_LABELS: [&str; num_features] = ["empty", "occupied", "other"];
-
   type outtype = f32;
 
-  const num_features: usize = 3;
+  const MAX_BATCH: usize = 16;
+  const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
+  const IMAGE_RESOLUTION: u32 = 448;
+  const CLASS_LABELS: [&str; OUTPUT_SIZE] = ["empty", "occupied", "other", "more"];
 
   pub struct prediction_probabilities {
-      pub ps: [outtype; num_features],
+      pub ps: [outtype; OUTPUT_SIZE],
   }
 
   impl prediction_probabilities {
       pub fn new() -> Self {
           prediction_probabilities {
-              ps: [0.0; num_features],
+              ps: [0.0; OUTPUT_SIZE],
           }
       }
       pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
           let mut ret = prediction_probabilities::new();
-          for i in 0..num_features {
+          for i in 0..OUTPUT_SIZE {
               ret.ps[i] = input[i];
           }
           return ret;
@@ -610,7 +606,7 @@
 
   #[derive(Serialize)]
   pub struct prediction_probabilities_reply {
-      ps: [String; num_features],
+      ps: [String; OUTPUT_SIZE],
       mj: String,
   }
 
@@ -625,7 +621,7 @@
           let mut max_index: usize = 0;
           let mut ret = prediction_probabilities_reply::new();
           ret.ps[0] = input.ps[0].to_string();
-          for i in 1..num_features {
+          for i in 1..OUTPUT_SIZE {
               ret.ps[i] = input.ps[i].to_string();
               if input.ps[i] > input.ps[max_index] {
                   max_index = i;
@@ -751,12 +747,16 @@
   }
 #+end_src
 
+**** COMMENT Remaining wrappers
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+#+end_src
+
 *** Main code
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   mod model;
   mod mylib;
   fn main() {
-      let mut input = arg_input {
+      let mut input = crate::model::arg_input {
           val: [0.0; 100usize],
       };
 
@@ -765,7 +765,7 @@
       }
 
       let vec_input = vec![input, input, input];
-      let vec_output = run_inference(vec_input);
+      let vec_output = crate::model::run_inference(vec_input);
       println!("{:?}", vec_output);
   }
 #+end_src
