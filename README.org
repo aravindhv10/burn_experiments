@@ -302,6 +302,7 @@
 
   .PHONY clean:
   	rm -vf -- build/libmytorch.so src/all.hpp build/main.o
+  	rm -rf -- ./build
 #+end_src
 
 ** Script to compile

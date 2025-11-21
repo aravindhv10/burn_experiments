@@ -15,3 +15,4 @@ build/libmytorch.so: build/main.o
 
 .PHONY clean:
 	rm -vf -- build/libmytorch.so src/all.hpp build/main.o
+	rm -rf -- ./build
