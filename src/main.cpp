@@ -19,6 +19,7 @@ void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) {
 
   std::vector<torch::Tensor> inputs = {
       torch::zeros({batch_size, INPUT_SIZE}, at::kCPU)};
+
   for (int j = 0; j < batch_size; ++j) {
     for (int i = 0; i < INPUT_SIZE; ++i) {
       inputs[0][j][i] = in[j].val[i];
