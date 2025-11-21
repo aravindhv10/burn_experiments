@@ -285,7 +285,7 @@
 
 *** Actual file
 #+begin_src make :tangle ./Makefile
-  CC=g++
+  CC=clang++
 
   .PHONY install: build/libmytorch.so
   	cp -vf -- build/libmytorch.so /lib/
@@ -294,11 +294,14 @@
   	$(CC) src/main.hpp -o src/all.hpp -E -I/usr/include/torch/csrc/api/include/
 
   build/main.o: src/main.cpp src/all.hpp
-  	mkdir -pv -- ./build ./lib
+  	mkdir -pv -- ./build
   	$(CC) src/main.cpp -fPIC -c -o build/main.o -O3 -march=x86-64-v3 -mtune=native
 
   build/libmytorch.so: build/main.o
   	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu
+
+  .PHONY clean:
+  	rm -vf -- build/libmytorch.so src/all.hpp build/main.o
 #+end_src
 
 ** Script to compile
@@ -401,6 +404,8 @@
 ** Actual file
 #+begin_src rust :mkdirp yes :tangle ./build.rs
   fn main() {
+      println!("cargo:rustc-link-arg=-lmytorch");
+
       // let library_path = std::path::Path::new("/usr/include/torch/csrc/api/include/");
 
       // cc::Build::new()
@@ -417,15 +422,15 @@
       // println!("cargo:rustc-link-arg=-lc10");
       // println!("cargo:rustc-link-arg=-lgomp-98b21ff3");
       // println!("cargo:rustc-link-arg=-ljitbackend_test");
-      println!("cargo:rustc-link-arg=-lmytorch");
+      // println!("cargo:rustc-link-arg=-lmytorch");
       // println!("cargo:rustc-link-arg=-lnnapi_backend");
       // println!("cargo:rustc-link-arg=-lshm");
-      println!("cargo:rustc-link-arg=-ltorch");
-      println!("cargo:rustc-link-arg=-ltorch_cpu");
+      // println!("cargo:rustc-link-arg=-ltorch");
+      // println!("cargo:rustc-link-arg=-ltorchbind_test");
+      // println!("cargo:rustc-link-arg=-ltorch_cpu");
       // println!("cargo:rustc-link-arg=-ltorch_global_deps");
       // println!("cargo:rustc-link-arg=-ltorch_python");
       // println!("cargo:rustc-link-arg=-Wl,--no-as-needed");
-      // println!("cargo:rustc-link-arg=-ltorchbind_test");
   }
 #+end_src
 
@@ -516,6 +521,7 @@
 ** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
+  make -j
   export RUSTFLAGS="-C target-cpu=native"
   cargo run --release
 #+end_src
