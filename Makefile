@@ -14,8 +14,7 @@ build/libmytorch.so: build/main.o
 	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu -flto
 
 clean:
-	rm -vf -- build/libmytorch.so src/all.hpp build/main.o
-	rm -rf -- ./build
+	rm -rf -- build src/all.hpp
 
 model_output.pt2: model_input.pt2 compile.py
 	./compile.py model_input.pt2 model_output.pt2
