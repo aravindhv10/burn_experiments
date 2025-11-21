@@ -11,4 +11,4 @@ build/main.o: src/main.cpp src/all.hpp
 	$(CC) src/main.cpp -fPIC -c -o build/main.o -O3 -march=x86-64-v3 -mtune=native
 
 build/libmytorch.so: build/main.o
-	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared
+	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu
