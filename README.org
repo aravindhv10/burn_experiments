@@ -212,7 +212,7 @@
 
 *** Actual file
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
-  #include "./main.hpp"
+  #include "./all.hpp"
 
   extern "C" {
 
@@ -274,6 +274,31 @@
 
   void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) ;
   }
+#+end_src
+
+** Makefile to compile the c++ side
+
+*** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'Makefile'
+#+end_src
+
+*** Actual file
+#+begin_src make :tangle ./Makefile
+  CC=g++
+
+  .PHONY install: build/libmytorch.so
+  	cp -vf -- build/libmytorch.so /lib/
+
+  src/all.hpp: src/main.hpp
+  	$(CC) src/main.hpp -o src/all.hpp -E -I/usr/include/torch/csrc/api/include/
+
+  build/main.o: src/main.cpp src/all.hpp
+  	mkdir -pv -- ./build ./lib
+  	$(CC) src/main.cpp -fPIC -c -o build/main.o -O3 -march=x86-64-v3 -mtune=native
+
+  build/libmytorch.so: build/main.o
+  	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared
 #+end_src
 
 ** Script to compile

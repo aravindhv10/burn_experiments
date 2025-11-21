@@ -1,4 +1,4 @@
-#include "./main.hpp"
+#include "./all.hpp"
 
 extern "C" {
 
