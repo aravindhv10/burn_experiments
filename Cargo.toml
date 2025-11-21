@@ -3,5 +3,14 @@ name = "burn_test"
 version = "0.1.0"
 edition = "2024"
 
+include = [
+    "./src/main.cpp",
+    "./src/main.hpp",
+    "./src/main.rs",
+    "Cargo.toml",
+    "build.rs",
+    "compile.py",
+]
+
 [build-dependencies]
 cc = { version = "1.2.46", features = ["jobserver", "parallel"] }

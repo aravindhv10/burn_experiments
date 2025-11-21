@@ -1,6 +1,4 @@
-#include <torch/csrc/inductor/aoti_package/model_package_loader.h>
-#include <torch/torch.h>
-#include <vector>
+#include "./main.hpp"
 
 extern "C" {
 

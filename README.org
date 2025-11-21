@@ -102,30 +102,9 @@
           )
 
           torch.export.save(
-              ep = exported_module,
-              f = path_file_out + ".pt2",
+              ep=exported_module,
+              f=path_file_out + ".pt2",
           )
-
-          # output_path = torch._inductor.aoti_compile_and_package(
-          #     exported_module,
-          #     # [Optional] Specify the generated shared library path. If not specified,
-          #     # the generated artifact is stored in your system temp directory.
-          #     package_path=path_file_out + ".pt2",
-          # )
-
-          # compiled_model = torch.compile(
-          #     model=exported_module.module(),
-          #     fullgraph=True,
-          #     dynamic=True,
-          #     backend="inductor",
-          #     mode="max-autotune",
-          # )
-
-          # jit_module = torch.jit.trace(
-          #     func=exported_module.module(),
-          #     example_inputs=x,
-          # )
-      # jit_module.save(path_file_out + ".pt")
 
 
   def export_to_onnx(path_file_out):
@@ -210,19 +189,30 @@
 
 * C++ program
 
-** Add file to git
+** Include all the main headers
+
+*** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD 'src/main.cpp'
   GITADD 'src/main.hpp'
-  GITADD 'compile_g++.sh'
-  GITADD 'compile_commands.json'
 #+end_src
 
-** Actual file
-#+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
+*** Actual file
+#+begin_src c++ :mkdirp yes :tangle ./src/main.hpp
   #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
   #include <torch/torch.h>
   #include <vector>
+#+end_src
+
+** Main C++ code
+
+*** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'src/main.cpp'
+#+end_src
+
+*** Actual file
+#+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
+  #include "./main.hpp"
 
   extern "C" {
 
@@ -261,7 +251,14 @@
 #+end_src
 
 ** Header file
-#+begin_src c++ :mkdirp yes :tangle ./src/main.hpp
+
+*** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'src/main.h'
+#+end_src
+
+*** Actual file
+#+begin_src c++ :mkdirp yes :tangle ./src/main.h
   extern "C" {
 
   unsigned long constexpr INPUT_SIZE = 100;
@@ -280,6 +277,13 @@
 #+end_src
 
 ** Script to compile
+
+*** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'compile_g++.sh'
+#+end_src
+
+*** Actual file
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile_g++.sh
   mkdir -pv -- './lib/' './tmp/'
 
@@ -309,6 +313,13 @@
 #+end_src
 
 ** compile_commands for lsp
+
+*** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'compile_commands.json'
+#+end_src
+
+*** Actual file
 #+begin_src conf :mkdirp yes :tangle ./compile_commands.json
   [
     {
@@ -341,6 +352,15 @@
   name = "burn_test"
   version = "0.1.0"
   edition = "2024"
+
+  include = [
+      "./src/main.cpp",
+      "./src/main.hpp",
+      "./src/main.rs",
+      "Cargo.toml",
+      "build.rs",
+      "compile.py",
+  ]
 
   [build-dependencies]
   cc = { version = "1.2.46", features = ["jobserver", "parallel"] }

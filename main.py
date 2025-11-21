@@ -46,30 +46,9 @@ def produce_model(path_file_out):
         )
 
         torch.export.save(
-            ep = exported_module,
-            f = path_file_out + ".pt2",
+            ep=exported_module,
+            f=path_file_out + ".pt2",
         )
-
-        # output_path = torch._inductor.aoti_compile_and_package(
-        #     exported_module,
-        #     # [Optional] Specify the generated shared library path. If not specified,
-        #     # the generated artifact is stored in your system temp directory.
-        #     package_path=path_file_out + ".pt2",
-        # )
-
-        # compiled_model = torch.compile(
-        #     model=exported_module.module(),
-        #     fullgraph=True,
-        #     dynamic=True,
-        #     backend="inductor",
-        #     mode="max-autotune",
-        # )
-
-        # jit_module = torch.jit.trace(
-        #     func=exported_module.module(),
-        #     example_inputs=x,
-        # )
-    # jit_module.save(path_file_out + ".pt")
 
 
 def export_to_onnx(path_file_out):
