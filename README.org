@@ -175,16 +175,19 @@
 
 
   def compile_to_dynamo(path_file_in, path_file_out):
-      exported_module = torch.export.load(f=path_file_in + ".pt2")
+      exported_module = torch.export.load(f=path_file_in)
       output_path = torch._inductor.aoti_compile_and_package(
           exported_module,
           # [Optional] Specify the generated shared library path. If not specified,
           # the generated artifact is stored in your system temp directory.
-          package_path=path_file_out + ".pt2",
+          package_path=path_file_out,
       )
 
 
-  compile_to_dynamo(path_file_in="model_input", path_file_out="model_output")
+  compile_to_dynamo(
+      path_file_in=sys.argv[1],
+      path_file_out=sys.argv[2],
+  )
 #+end_src
 
 * C++ program
@@ -287,7 +290,7 @@
 #+begin_src make :tangle ./Makefile
   CC=clang++
 
-  install: build/libmytorch.so
+  install: build/libmytorch.so model_output.pt2
   	cp -vf -- build/libmytorch.so /lib/
 
   src/all.hpp: src/main.hpp
@@ -303,6 +306,12 @@
   clean:
   	rm -vf -- build/libmytorch.so src/all.hpp build/main.o
   	rm -rf -- ./build
+
+  model_output.pt2: model_input.pt2 compile.py
+  	./compile.py model_input.pt2 model_output.pt2
+
+  model_input.pt2: main.py
+  	./main.py
 #+end_src
 
 ** Script to compile
