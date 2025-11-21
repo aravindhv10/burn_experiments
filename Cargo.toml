@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 include = [
-    "./src/main.cpp",
-    "./src/main.hpp",
-    "./src/main.rs",
+    "src/main.cpp",
+    "src/main.hpp",
+    "src/main.h",
+    "src/main.rs",
     "Cargo.toml",
+    "Makefile",
     "build.rs",
     "compile.py",
 ]
