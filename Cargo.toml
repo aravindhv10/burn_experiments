@@ -13,3 +13,7 @@ include = [
     "build.rs",
     "compile.py",
 ]
+
+[[bin]]
+name = "infer-server"
+path = "src/main.rs"

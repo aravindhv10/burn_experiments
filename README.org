@@ -385,6 +385,8 @@
 #+end_src
 
 ** Actual file
+
+*** Main metadata
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   [package]
   name = "burn_test"
@@ -401,6 +403,39 @@
       "build.rs",
       "compile.py",
   ]
+#+end_src
+
+*** List of files to compile
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  [[bin]]
+  name = "infer-server"
+  path = "src/main.rs"
+#+end_src
+
+*** COMMENT Dependencies
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  [[bin]]
+  name = "infer-server"
+  path = "src/main.rs"
+
+  [dependencies]
+  actix-multipart = "0.7.2"
+  actix-web = "4.11.0"
+  bincode = { version = "2.0.1", features = ["serde"] }
+  env_logger = "0.11.8"
+  futures = "0.3.31"
+  futures-util = "0.3.31"
+  gxhash = "3.5.0"
+  image = { version = "0.25.6", features = ["serde", "nasm"] }
+  lockfree = "0.5.1"
+  log = "0.4.27"
+  ndarray = { version = "0.16.1", features = ["blas", "matrixmultiply-threading", "rayon", "serde"] }
+  prost = "0.14"
+  serde = { version = "1.0.219", features = ["derive"] }
+  thiserror = "2.0.15"
+  tokio = { version = "1.47.1", features = ["full"] }
+  tonic-prost = "*"
+  tonic = { version = "0.14.2", features = ["zstd"] }
 #+end_src
 
 * build.rs
@@ -426,7 +461,50 @@
 
 ** Actual code
 
-*** Outputs from bindgen
+*** COMMENT lib file
+#+begin_src rust :mkdirp yes :tangle ./src/mylib.rs
+  use image::DynamicImage;
+  use image::imageops;
+
+  pub struct image_processor {
+      image_resolution: u32,
+  }
+
+  impl image_processor {
+      pub fn new(val: u32) -> Self {
+          return image_processor {
+              image_resolution: val,
+          };
+      }
+      fn preprocess(&self, img: DynamicImage) -> image::RgbaImage {
+          let (width, height) = (img.width(), img.height());
+          let size = width.min(height);
+          let x = (width - size) / 2;
+          let y = (height - size) / 2;
+          let cropped_img = imageops::crop_imm(&img, x, y, size, size).to_image();
+          imageops::resize(
+              &cropped_img,
+              self.image_resolution,
+              self.image_resolution,
+              imageops::FilterType::CatmullRom,
+          )
+      }
+      pub fn decode_and_preprocess(&self, data: Vec<u8>) -> Result<image::RgbaImage, String> {
+          match image::load_from_memory(&data) {
+              Ok(img) => {
+                  return Ok(self.preprocess(img));
+              }
+              Err(e) => {
+                  return Err("decode error".to_string());
+              }
+          };
+      }
+  }
+#+end_src
+
+*** Main model code
+
+**** Outputs from bindgen
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   pub const INPUT_SIZE: ::std::os::raw::c_ulong = 100;
   pub const OUTPUT_SIZE: ::std::os::raw::c_ulong = 4;
@@ -461,7 +539,7 @@
   }
 #+end_src
 
-*** Actual rust parts
+**** Actual rust parts
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
       let tmp = arg_output { val: [0.0; 4usize] };
@@ -506,7 +584,7 @@
   cd "$(dirname -- "${0}")"
   make -j
   export RUSTFLAGS="-C target-cpu=native"
-  cargo run --release
+  cargo run --release infer-server
 #+end_src
 
 * COMMENT Work space
