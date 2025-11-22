@@ -2,8 +2,6 @@ include!("export.rs");
 
 const CLASS_LABELS: [&str; SIZE_O as usize] = ["empty", "occupied", "other"];
 
-use std::ops::Index;
-
 impl arg_output {
 
     pub fn new() -> Self {
@@ -12,7 +10,7 @@ impl arg_output {
         }
     }
 
-    pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
+    pub fn from<T: std::ops::Index<usize, Output = outtype>>(input: T) -> Self {
         let mut ret = arg_output::new();
         for i in 0..SIZE_O {
             ret.val[i as usize] = input[i as usize];
@@ -39,9 +37,7 @@ pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
     output
 }
 
-use serde::Serialize;
-
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 pub struct prediction_probabilities_reply {
     val: [String; SIZE_O as usize],
     mj: String,
@@ -75,6 +71,7 @@ impl prediction_probabilities_reply {
 }
 
 use tokio;
+
 pub struct InferRequest {
     img: image::RgbaImage,
     resp_tx: tokio::sync::oneshot::Sender<Result<arg_output, String>>,
