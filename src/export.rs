@@ -7,11 +7,12 @@ pub const SIZE_Y: ::std::os::raw::c_uint = 448;
 pub const SIZE_X: ::std::os::raw::c_uint = 448;
 pub const SIZE_C: ::std::os::raw::c_uint = 3;
 pub const SIZE_O: ::std::os::raw::c_uint = 3;
+pub type intype = f32;
 pub type outtype = f32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct arg_input {
-    pub val: [[[f32; 3usize]; 448usize]; 448usize],
+    pub val: [[[intype; 3usize]; 448usize]; 448usize],
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
