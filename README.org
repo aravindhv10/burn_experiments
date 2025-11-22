@@ -694,48 +694,43 @@
 
   const MAX_BATCH: usize = 16;
   const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
-  const IMAGE_RESOLUTION: u32 = 448;
-  const CLASS_LABELS: [&str; OUTPUT_SIZE] = ["empty", "occupied", "other", "more"];
+  const CLASS_LABELS: [&str; SIZE_O] = ["empty", "occupied", "other"];
 
-  pub struct prediction_probabilities {
-      pub ps: [outtype; OUTPUT_SIZE],
-  }
-
-  impl prediction_probabilities {
+  impl arg_output {
       pub fn new() -> Self {
-          prediction_probabilities {
-              ps: [0.0; OUTPUT_SIZE],
+          arg_output {
+              val: [0.0; SIZE_O],
           }
       }
       pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
-          let mut ret = prediction_probabilities::new();
-          for i in 0..OUTPUT_SIZE {
-              ret.ps[i] = input[i];
+          let mut ret = arg_output::new();
+          for i in 0..SIZE_O {
+              ret.val[i] = input[i];
           }
-          return ret;
+          ret
       }
   }
 
   #[derive(Serialize)]
   pub struct prediction_probabilities_reply {
-      ps: [String; OUTPUT_SIZE],
+      val: [String; SIZE_O],
       mj: String,
   }
 
   impl prediction_probabilities_reply {
       pub fn new() -> Self {
           prediction_probabilities_reply {
-              ps: std::array::from_fn(|_| String::new()),
+              val: std::array::from_fn(|_| String::new()),
               mj: String::new(),
           }
       }
-      pub fn from(input: prediction_probabilities) -> prediction_probabilities_reply {
+      pub fn from(input: arg_output) -> prediction_probabilities_reply {
           let mut max_index: usize = 0;
           let mut ret = prediction_probabilities_reply::new();
-          ret.ps[0] = input.ps[0].to_string();
-          for i in 1..OUTPUT_SIZE {
-              ret.ps[i] = input.ps[i].to_string();
-              if input.ps[i] > input.ps[max_index] {
+          ret.val[0] = input.val[0].to_string();
+          for i in 1..SIZE_O {
+              ret.ps[i] = input.val[i].to_string();
+              if input.val[i] > input.val[max_index] {
                   max_index = i;
               }
           }
@@ -746,7 +741,7 @@
 
   pub struct InferRequest {
       img: image::RgbaImage,
-      resp_tx: oneshot::Sender<Result<prediction_probabilities, String>>,
+      resp_tx: oneshot::Sender<Result<arg_input, String>>,
   }
 
   pub struct model_server {
@@ -798,7 +793,7 @@
                   .t()
                   .into_owned();
               for (row, req) in output.axis_iter(Axis(1)).zip(batch.into_iter()) {
-                  let result = prediction_probabilities::from(row);
+                  let result = arg_input::from(row);
                   let _ = req.resp_tx.send(Ok(result));
               }
           }
@@ -814,7 +809,7 @@
       pub async fn do_infer(
           &self,
           img: image::RgbaImage,
-      ) -> Result<prediction_probabilities, String> {
+      ) -> Result<arg_input, String> {
           let (resp_tx, resp_rx) = oneshot::channel();
           match self.tx.send(InferRequest { img, resp_tx }).await {
               Ok(_) => match resp_rx.await {
@@ -833,7 +828,7 @@
               }
           }
       }
-      pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<prediction_probabilities, String> {
+      pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_input, String> {
           match self.preprocess.decode_and_preprocess(data) {
               Ok(img) => {
                   return self.do_infer(img).await;
