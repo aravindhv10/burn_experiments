@@ -141,7 +141,7 @@ class model_wrapper(torch.nn.Module):
 
     def init_timm_model(self):
         self.timm_model = timm.create_model(
-            "eva02_large_patch14_448.mim_m38m_ft_in22k_in1k",
+            "timm/eva02_base_patch14_448.mim_in22k_ft_in1k",
             num_classes=3,
             pretrained=True,
         )
