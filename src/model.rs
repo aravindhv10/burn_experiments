@@ -178,7 +178,3 @@ pub fn get_inference_tuple() -> (model_server, model_client) {
     };
     return (ret_server, ret_client);
 }
-
-
-
-

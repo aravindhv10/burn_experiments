@@ -9,10 +9,11 @@ unsigned int constexpr SIZE_X = IMAGE_RESOLUTION;
 unsigned int constexpr SIZE_C = NUM_CHANNELS;
 unsigned int constexpr SIZE_O = NUM_CLASSES;
 
+typedef float intype;
 typedef float outtype;
 
 struct arg_input {
-  float val[SIZE_Y][SIZE_X][SIZE_C];
+  intype val[SIZE_Y][SIZE_X][SIZE_C];
 };
 
 struct arg_output {

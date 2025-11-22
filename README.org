@@ -348,10 +348,11 @@
   unsigned int constexpr SIZE_C = NUM_CHANNELS;
   unsigned int constexpr SIZE_O = NUM_CLASSES;
 
+  typedef float intype;
   typedef float outtype;
 
   struct arg_input {
-    outtype val[SIZE_Y][SIZE_X][SIZE_C];
+    intype val[SIZE_Y][SIZE_X][SIZE_C];
   };
 
   struct arg_output {
@@ -407,10 +408,11 @@
   unsigned int constexpr SIZE_C = NUM_CHANNELS;
   unsigned int constexpr SIZE_O = NUM_CLASSES;
 
+  typedef float intype;
   typedef float outtype;
 
   struct arg_input {
-    float val[SIZE_Y][SIZE_X][SIZE_C];
+    intype val[SIZE_Y][SIZE_X][SIZE_C];
   };
 
   struct arg_output {
@@ -477,23 +479,6 @@
       -c -fPIC \
       '-I/usr/include/torch/csrc/api/include/' \
   ;
-
-  # clang++ \
-  #     './tmp.cpp' -o './tmp.exe' \
-  #     './tmp/main.o' \
-  #     -ltorch \
-  #     -ltorch_cpu \
-  #     -lc10 \
-  # ;
-      # -laoti_custom_ops \
-      # -lbackend_with_compiler \
-      # -lgomp-98b21ff3 \
-      # -ljitbackend_test \
-      # -lnnapi_backend \
-      # -lshm \
-      # -ltorch_global_deps \
-      # -ltorch_python \
-      # -ltorchbind_test \
 #+end_src
 
 ** compile_commands for lsp
@@ -679,7 +664,6 @@
   }
 #+end_src
 
-
 **** Implement methods for output class
 
 ***** List of output labels
@@ -826,7 +810,9 @@
   }
 #+end_src
 
-**** 
+**** The model client
+
+***** The Struct
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub struct model_client {
       tx: tokio::sync::mpsc::Sender<InferRequest>,
@@ -834,7 +820,7 @@
   }
 #+end_src
 
-**** 
+***** Implement the methods
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl model_client {
       pub async fn do_infer(
@@ -872,7 +858,7 @@
   }
 #+end_src
 
-**** 
+**** Convenient method to get both the server and client
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn get_inference_tuple() -> (model_server, model_client) {
       let (tx, rx) = tokio::sync::mpsc::channel::<InferRequest>(512);
@@ -885,28 +871,6 @@
       };
       return (ret_server, ret_client);
   }
-#+end_src
-
-**** 
-#+begin_src rust :mkdirp yes :tangle ./src/model.rs
-#+end_src
-
-**** 
-#+begin_src rust :mkdirp yes :tangle ./src/model.rs
-#+end_src
-
-**** COMMENT Actual model wrappers
-#+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  use std::ops::Index;
-  use std::time::Duration;
-
-  use ndarray::Array;
-  use ndarray::Axis;
-  use ndarray::Ix4;
-
-  use tokio::sync::mpsc;
-
-  use crate::mylib::image_processor;
 #+end_src
 
 *** Main code
