@@ -119,8 +119,8 @@ impl model_server {
                 }
             }
             let outputs = run_inference(input) ;
-            for (b, out) in outputs.iter().enumerate() {
-                // let result = arg_output::from(out);
+
+            for (out, req) in outputs.into_iter().zip(batch.into_iter()) {
                 let _ = req.resp_tx.send(Ok(out));
             }
         }
