@@ -657,7 +657,7 @@
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
-      let tmp = arg_output { val: [0.0; SIZE_O] };
+      let tmp = arg_output { val: [0.0; SIZE_O as usize] };
 
       let mut output = Vec::<arg_output>::with_capacity(input.len());
 
