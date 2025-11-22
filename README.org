@@ -50,11 +50,13 @@
 
 *** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD 'main.py'
+  PREPARE_PYTHON_FILE 'main'
 #+end_src
 
 *** Actual file
-#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.py
+
+**** config the import paths
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.config.py
   import os
 
   try:
@@ -66,14 +68,60 @@
   import sys
 
   sys.path.append(basepath)
-  INPUT_SIZE = 100
+#+end_src
+
+**** config standard variables
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.config.py
+  IMAGE_RESOLUTION = 448
+  SIZE_X = IMAGE_RESOLUTION
+  SIZE_Y = IMAGE_RESOLUTION
+  SIZE_C = 3
   BATCH_SIZE = 4
+  INPUT_SHAPE = (BATCH_SIZE, SIZE_Y, SIZE_X, SIZE_C)
+#+end_src
+
+**** import important libraries
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.import.py
   import einops
   import timm
   import torch
   from torch.export.dynamic_shapes import Dim
+#+end_src
 
+**** class to define the actual model
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.class.py
+  class model_wrapper(torch.nn.Module):
+      def setup_stat_parameters_as_float(self):
+          self.mean = (
+              0.48145466,
+              0.4578275,
+              0.40821073,
+          )
+          self.std = (
+              0.26862954,
+              0.26130258,
+              0.27577711,
+          )
 
+      def __init__(self):
+          super().__init__()
+          self.L1 = torch.nn.Linear(
+              in_features=INPUT_SIZE,
+              out_features=4,
+              bias=True,
+              dtype=torch.float32,
+          )
+
+      def forward(
+          self,
+          x: torch.Tensor,
+      ):
+          x = self.L1(x)
+          return x
+#+end_src
+
+**** function to produce the export
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
   def produce_model(path_file_out):
       with torch.no_grad():
           model = model_wrapper()
@@ -105,52 +153,10 @@
               ep=exported_module,
               f=path_file_out + ".pt2",
           )
+#+end_src
 
-
-  def export_to_onnx(path_file_out):
-      model = model_wrapper()
-      model = torch.compile(
-          model=model,
-          fullgraph=True,
-          dynamic=True,
-          backend="inductor",
-          mode="max-autotune",
-      )
-      x = torch.rand(
-          (BATCH_SIZE, INPUT_SIZE),
-          dtype=torch.float32,
-      )
-      y = model(x)
-      res = torch.onnx.export(
-          slave,
-          x,
-          path_file_out,
-          input_names="x",
-          output_names="y",
-          opset_version=23,
-          dynamo=True,
-          external_data=True,
-      )
-
-
-  class model_wrapper(torch.nn.Module):
-      def __init__(self):
-          super().__init__()
-          self.L1 = torch.nn.Linear(
-              in_features=INPUT_SIZE,
-              out_features=4,
-              bias=True,
-              dtype=torch.float32,
-          )
-
-      def forward(
-          self,
-          x: torch.Tensor,
-      ):
-          x = self.L1(x)
-          return x
-
-
+**** execute
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
   produce_model(path_file_out="model_input")
 #+end_src
 
