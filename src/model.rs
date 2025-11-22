@@ -126,3 +126,59 @@ impl model_server {
         }
     }
 }
+
+pub struct model_client {
+    tx: tokio::sync::mpsc::Sender<InferRequest>,
+    preprocess: crate::mylib::image_processor,
+}
+
+impl model_client {
+    pub async fn do_infer(
+        &self,
+        img: image::RgbaImage,
+    ) -> Result<arg_output, String> {
+        let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
+        match self.tx.send(InferRequest { img, resp_tx}).await {
+            Ok(_) => match resp_rx.await {
+                Ok(Ok(pred)) => {
+                    return Ok(pred);
+                }
+                Ok(Err(e)) => {
+                    return Err(e);
+                }
+                Err(e) => {
+                    return Err("Recv Error".to_string());
+                }
+            },
+            Err(e) => {
+                return Err("Send error".to_string());
+            }
+        }
+    }
+    pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_output, String> {
+        match self.preprocess.decode_and_preprocess(data) {
+            Ok(img) => {
+                return self.do_infer(img).await;
+            }
+            Err(e) => {
+                return Err("Failed to decode and pre-process the image".to_string());
+            }
+        }
+    }
+}
+
+pub fn get_inference_tuple() -> (model_server, model_client) {
+    let (tx, rx) = tokio::sync::mpsc::channel::<InferRequest>(512);
+    let ret_server = model_server {
+        rx: rx,
+    };
+    let ret_client = model_client {
+        tx: tx,
+        preprocess: crate::mylib::image_processor::new(IMAGE_RESOLUTION),
+    };
+    return (ret_server, ret_client);
+}
+
+
+
+

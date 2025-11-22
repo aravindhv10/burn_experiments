@@ -2,14 +2,13 @@
 
 extern "C" {
 
-unsigned int constexpr IMAGE_RESILUTION = 448;
+unsigned int constexpr IMAGE_RESOLUTION = 448;
 unsigned int constexpr NUM_CHANNELS = 3;
 unsigned int constexpr NUM_CLASSES = 3;
 
-unsigned int constexpr SIZE_Y = IMAGE_RESILUTION;
-unsigned int constexpr SIZE_X = IMAGE_RESILUTION;
+unsigned int constexpr SIZE_Y = IMAGE_RESOLUTION;
+unsigned int constexpr SIZE_X = IMAGE_RESOLUTION;
 unsigned int constexpr SIZE_C = NUM_CHANNELS;
-
 unsigned int constexpr SIZE_O = NUM_CLASSES;
 
 typedef float outtype;

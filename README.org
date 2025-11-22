@@ -339,14 +339,13 @@
 
   extern "C" {
 
-  unsigned int constexpr IMAGE_RESILUTION = 448;
+  unsigned int constexpr IMAGE_RESOLUTION = 448;
   unsigned int constexpr NUM_CHANNELS = 3;
   unsigned int constexpr NUM_CLASSES = 3;
 
-  unsigned int constexpr SIZE_Y = IMAGE_RESILUTION;
-  unsigned int constexpr SIZE_X = IMAGE_RESILUTION;
+  unsigned int constexpr SIZE_Y = IMAGE_RESOLUTION;
+  unsigned int constexpr SIZE_X = IMAGE_RESOLUTION;
   unsigned int constexpr SIZE_C = NUM_CHANNELS;
-
   unsigned int constexpr SIZE_O = NUM_CLASSES;
 
   typedef float outtype;
@@ -399,12 +398,12 @@
 #+begin_src c++ :mkdirp yes :tangle ./src/export.hpp
   extern "C" {
 
-  unsigned int constexpr IMAGE_RESILUTION = 448;
+  unsigned int constexpr IMAGE_RESOLUTION = 448;
   unsigned int constexpr NUM_CHANNELS = 3;
   unsigned int constexpr NUM_CLASSES = 3;
 
-  unsigned int constexpr SIZE_Y = IMAGE_RESILUTION;
-  unsigned int constexpr SIZE_X = IMAGE_RESILUTION;
+  unsigned int constexpr SIZE_Y = IMAGE_RESOLUTION;
+  unsigned int constexpr SIZE_X = IMAGE_RESOLUTION;
   unsigned int constexpr SIZE_C = NUM_CHANNELS;
   unsigned int constexpr SIZE_O = NUM_CLASSES;
 
@@ -827,32 +826,23 @@
   }
 #+end_src
 
-**** COMMENT Actual model wrappers
+**** 
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  use std::ops::Index;
-  use std::time::Duration;
-
-  use ndarray::Array;
-  use ndarray::Axis;
-  use ndarray::Ix4;
-
-  use tokio::sync::mpsc;
-
-  use crate::mylib::image_processor;
-
-
   pub struct model_client {
-      tx: mpsc::Sender<InferRequest>,
-      preprocess: image_processor,
+      tx: tokio::sync::mpsc::Sender<InferRequest>,
+      preprocess: crate::mylib::image_processor,
   }
+#+end_src
 
+**** 
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl model_client {
       pub async fn do_infer(
           &self,
           img: image::RgbaImage,
-      ) -> Result<arg_input, String> {
-          let (resp_tx, resp_rx) = oneshot::channel();
-          match self.tx.send(InferRequest { img, resp_tx }).await {
+      ) -> Result<arg_output, String> {
+          let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
+          match self.tx.send(InferRequest { img, resp_tx}).await {
               Ok(_) => match resp_rx.await {
                   Ok(Ok(pred)) => {
                       return Ok(pred);
@@ -869,7 +859,7 @@
               }
           }
       }
-      pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_input, String> {
+      pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_output, String> {
           match self.preprocess.decode_and_preprocess(data) {
               Ok(img) => {
                   return self.do_infer(img).await;
@@ -880,19 +870,43 @@
           }
       }
   }
+#+end_src
 
+**** 
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn get_inference_tuple() -> (model_server, model_client) {
-      let (tx, rx) = mpsc::channel::<InferRequest>(512);
+      let (tx, rx) = tokio::sync::mpsc::channel::<InferRequest>(512);
       let ret_server = model_server {
           rx: rx,
-          session: get_model(MODEL_PATH),
       };
       let ret_client = model_client {
           tx: tx,
-          preprocess: image_processor::new(IMAGE_RESOLUTION),
+          preprocess: crate::mylib::image_processor::new(IMAGE_RESOLUTION),
       };
       return (ret_server, ret_client);
   }
+#+end_src
+
+**** 
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+#+end_src
+
+**** 
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+#+end_src
+
+**** COMMENT Actual model wrappers
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  use std::ops::Index;
+  use std::time::Duration;
+
+  use ndarray::Array;
+  use ndarray::Axis;
+  use ndarray::Ix4;
+
+  use tokio::sync::mpsc;
+
+  use crate::mylib::image_processor;
 #+end_src
 
 *** Main code
