@@ -16,7 +16,7 @@
 
 ** Important envs
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes  :tangle ./host.image_names.sh
-  IMAGE_NAME='burnexps'
+  IMAGE_NAME='debtestrustzshhelixpytorch2'
 #+end_src
 
 ** Important functions
@@ -45,6 +45,22 @@
 #+end_src
 
 * Python file to produce the model file and compile it
+
+** Shell scsript to update the model only based on checksum
+
+*** Add script to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'main.sh'
+#+end_src
+
+*** Actual script
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./main.sh
+  H="$(sha512sum ./main.py | cut -d ' ' -f1)"
+  test -e "${H}.pt2" && exit '0'
+  ./main.py "${H}.pt2"
+  ln -vfs -- "${H}.pt2" "./model_input.pt2"
+  exit '0'
+#+end_src
 
 ** Produce the model
 
@@ -75,6 +91,7 @@
   IMAGE_RESOLUTION = 448
   BATCH_SIZE = 4
   NUM_CHANNELS = 3
+  NUM_CLASSES = 3
 
   (
       SIZE_B,
@@ -180,7 +197,7 @@
       def init_timm_model(self):
           self.timm_model = timm.create_model(
               "timm/eva02_base_patch14_448.mim_in22k_ft_in1k",
-              num_classes=3,
+              num_classes=NUM_CLASSES,
               pretrained=True,
           )
 
@@ -210,7 +227,6 @@
               INPUT_SHAPE,
               dtype=torch.float32,
           )
-          # y = model(x)
 
           dynamic_shapes = {
               "x": (
@@ -224,19 +240,18 @@
               model._orig_mod,
               (x,),
               dynamic_shapes=dynamic_shapes,
-              # strict=True,
-              # dynamic_shapes=dynamic_shapes,
+              strict=True,
           )
 
           torch.export.save(
               ep=exported_module,
-              f=path_file_out + ".pt2",
+              f=path_file_out,
           )
 #+end_src
 
 **** execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
-  produce_model(path_file_out="model_input")
+  produce_model(path_file_out=sys.argv[1])
 #+end_src
 
 ** Compile the model
@@ -306,35 +321,47 @@
 
   extern "C" {
 
-  unsigned long constexpr INPUT_SIZE = 100;
-  unsigned long constexpr OUTPUT_SIZE = 4;
+  unsigned long constexpr IMAGE_RESILUTION = 448;
+  unsigned long constexpr NUM_CHANNELS = 3;
+  unsigned long constexpr NUM_CLASSES = 3;
+
+  unsigned long constexpr SIZE_Y = IMAGE_RESILUTION;
+  unsigned long constexpr SIZE_X = IMAGE_RESILUTION;
+  unsigned long constexpr SIZE_C = NUM_CHANNELS;
+
+  unsigned long constexpr SIZE_O = NUM_CLASSES;
 
   struct arg_input {
-    float val[INPUT_SIZE];
+    float val[SIZE_Y][SIZE_X][SIZE_C];
   };
 
   struct arg_output {
-    float val[OUTPUT_SIZE];
+    float val[SIZE_O];
   };
 
   void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) {
+
     static c10::InferenceMode mode;
     static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
 
     std::vector<torch::Tensor> inputs = {
-        torch::zeros({batch_size, INPUT_SIZE}, at::kCPU)};
+        torch::zeros({batch_size, SIZE_Y, SIZE_X, SIZE_C}, at::kCPU)};
 
-    for (int j = 0; j < batch_size; ++j) {
-      for (int i = 0; i < INPUT_SIZE; ++i) {
-        inputs[0][j][i] = in[j].val[i];
+    for (int B = 0; B < batch_size; ++B) {
+      for (int Y = 0; Y < SIZE_Y; ++Y) {
+        for (int X = 0; X < SIZE_X; ++X) {
+          for (int C = 0; C < SIZE_C; ++C) {
+            inputs[0][B][Y][X][C] = in[B].val[Y][X][C];
+          }
+        }
       }
     }
 
     std::vector<torch::Tensor> outputs = loader.run(inputs);
 
-    for (int j = 0; j < batch_size; ++j) {
-      for (int i = 0; i < OUTPUT_SIZE; i++) {
-        out[j].val[i] = outputs[0][j][i].item<float>();
+    for (int B = 0; B < batch_size; ++B) {
+      for (int O = 0; O < SIZE_O; ++O) {
+        out[B].val[O] = outputs[0][B][O].item<float>();
       }
     }
   }
@@ -345,25 +372,32 @@
 
 *** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD 'src/main.h'
+  GITADD 'src/export.hpp'
 #+end_src
 
 *** Actual file
-#+begin_src c++ :mkdirp yes :tangle ./src/main.h
+#+begin_src c++ :mkdirp yes :tangle ./src/export.hpp
   extern "C" {
 
-  unsigned long constexpr INPUT_SIZE = 100;
-  unsigned long constexpr OUTPUT_SIZE = 4;
+  unsigned long constexpr IMAGE_RESILUTION = 448;
+  unsigned long constexpr NUM_CHANNELS = 3;
+  unsigned long constexpr NUM_CLASSES = 3;
+
+  unsigned long constexpr SIZE_Y = IMAGE_RESILUTION;
+  unsigned long constexpr SIZE_X = IMAGE_RESILUTION;
+  unsigned long constexpr SIZE_C = NUM_CHANNELS;
+
+  unsigned long constexpr SIZE_O = NUM_CLASSES;
 
   struct arg_input {
-    float val[INPUT_SIZE];
+    float val[SIZE_Y][SIZE_X][SIZE_C];
   };
 
   struct arg_output {
-    float val[OUTPUT_SIZE];
+    float val[SIZE_O];
   };
 
-  void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) ;
+  void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out);
   }
 #+end_src
 
@@ -378,7 +412,7 @@
 #+begin_src make :tangle ./Makefile
   CC=clang++
 
-  install: build/libmytorch.so model_output.pt2
+  install: build/libmytorch.so model_output.pt2 src/export.rs
   	cp -vf -- build/libmytorch.so /lib/
 
   src/all.hpp: src/main.hpp
@@ -397,9 +431,13 @@
   model_output.pt2: model_input.pt2 compile.py
   	./compile.py model_input.pt2 model_output.pt2
 
+  src/export.rs: src/export.hpp
+  	bindgen src/export.hpp > src/export.rs
+
   model_input.pt2: main.py
   	./main.py
 #+end_src
+
 
 ** Script to compile
 
@@ -596,43 +634,13 @@
 
 **** Outputs from bindgen
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  pub const INPUT_SIZE: ::std::os::raw::c_ulong = 100;
-  pub const OUTPUT_SIZE: ::std::os::raw::c_ulong = 4;
-  #[repr(C)]
-  #[derive(Debug, Copy, Clone)]
-  pub struct arg_input {
-      pub val: [f32; 100usize],
-  }
-  #[allow(clippy::unnecessary_operation, clippy::identity_op)]
-  const _: () = {
-      ["Size of arg_input"][::std::mem::size_of::<arg_input>() - 400usize];
-      ["Alignment of arg_input"][::std::mem::align_of::<arg_input>() - 4usize];
-      ["Offset of field: arg_input::val"][::std::mem::offset_of!(arg_input, val) - 0usize];
-  };
-  #[repr(C)]
-  #[derive(Debug, Copy, Clone)]
-  pub struct arg_output {
-      pub val: [f32; 4usize],
-  }
-  #[allow(clippy::unnecessary_operation, clippy::identity_op)]
-  const _: () = {
-      ["Size of arg_output"][::std::mem::size_of::<arg_output>() - 16usize];
-      ["Alignment of arg_output"][::std::mem::align_of::<arg_output>() - 4usize];
-      ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
-  };
-  unsafe extern "C" {
-      pub fn do_infer(
-          in_: *const arg_input,
-          batch_size: ::std::os::raw::c_uint,
-          out: *mut arg_output,
-      );
-  }
+  include!("export.rs");
 #+end_src
 
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
-      let tmp = arg_output { val: [0.0; 4usize] };
+      let tmp = arg_output { val: [0.0; SIZE_O] };
 
       let mut output = Vec::<arg_output>::with_capacity(input.len());
 
@@ -648,7 +656,7 @@
   }
 #+end_src
 
-**** Actual model wrappers
+**** COMMENT Actual model wrappers
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   use serde::Serialize;
 
@@ -834,22 +842,14 @@
   }
 #+end_src
 
-**** COMMENT Remaining wrappers
-#+begin_src rust :mkdirp yes :tangle ./src/model.rs
-#+end_src
-
 *** Main code
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   mod model;
   mod mylib;
   fn main() {
       let mut input = crate::model::arg_input {
-          val: [0.0; 100usize],
+          val: [[[0.0; 3usize]; 448usize]; 448usize],
       };
-
-      for i in 0..100 {
-          input.val[i] = (i as f32) / 100.0;
-      }
 
       let vec_input = vec![input, input, input];
       let vec_output = crate::model::run_inference(vec_input);

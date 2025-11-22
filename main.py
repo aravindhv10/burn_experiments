@@ -13,6 +13,7 @@ sys.path.append(basepath)
 IMAGE_RESOLUTION = 448
 BATCH_SIZE = 4
 NUM_CHANNELS = 3
+NUM_CLASSES = 3
 (
     SIZE_B,
     SIZE_Y,
@@ -50,7 +51,6 @@ def produce_model(path_file_out):
             INPUT_SHAPE,
             dtype=torch.float32,
         )
-        # y = model(x)
         dynamic_shapes = {
             "x": (
                 Dim.DYNAMIC,
@@ -63,12 +63,11 @@ def produce_model(path_file_out):
             model._orig_mod,
             (x,),
             dynamic_shapes=dynamic_shapes,
-            # strict=True,
-            # dynamic_shapes=dynamic_shapes,
+            strict=True,
         )
         torch.export.save(
             ep=exported_module,
-            f=path_file_out + ".pt2",
+            f=path_file_out,
         )
 
 
@@ -142,7 +141,7 @@ class model_wrapper(torch.nn.Module):
     def init_timm_model(self):
         self.timm_model = timm.create_model(
             "timm/eva02_base_patch14_448.mim_in22k_ft_in1k",
-            num_classes=3,
+            num_classes=NUM_CLASSES,
             pretrained=True,
         )
 
@@ -156,4 +155,4 @@ class model_wrapper(torch.nn.Module):
     ################################################################
 
 
-produce_model(path_file_out="model_input")
+produce_model(path_file_out=sys.argv[1])

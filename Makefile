@@ -1,6 +1,6 @@
 CC=clang++
 
-install: build/libmytorch.so model_output.pt2
+install: build/libmytorch.so model_output.pt2 src/export.rs
 	cp -vf -- build/libmytorch.so /lib/
 
 src/all.hpp: src/main.hpp
@@ -18,6 +18,9 @@ clean:
 
 model_output.pt2: model_input.pt2 compile.py
 	./compile.py model_input.pt2 model_output.pt2
+
+src/export.rs: src/export.hpp
+	bindgen src/export.hpp > src/export.rs
 
 model_input.pt2: main.py
 	./main.py

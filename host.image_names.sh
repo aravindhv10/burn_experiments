@@ -1,5 +1,5 @@
 #!/bin/sh
-IMAGE_NAME='burnexps'
+IMAGE_NAME='debtestrustzshhelixpytorch2'
 
 RUN_CONTAINER () {
     CMD='sudo -A docker'
