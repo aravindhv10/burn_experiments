@@ -685,13 +685,18 @@
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
-      let tmp = arg_output { val: [0.0; SIZE_O as usize] };
 
-      let mut output = Vec::<arg_output>::with_capacity(input.len());
+      let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
+      // my_vec will be: [0, 1, 2, 3, 4]
 
-      for _ in 0..input.len() {
-          output.push(tmp);
-      }
+
+      // let tmp = arg_output { val: [0.0; SIZE_O as usize] };
+
+      // let mut output = Vec::<arg_output>::with_capacity(input.len());
+
+      // for _ in 0..input.len() {
+      //     output.push(tmp);
+      // }
 
       unsafe {
           do_infer(input.as_ptr(), input.len() as u32, output.as_mut_ptr());
