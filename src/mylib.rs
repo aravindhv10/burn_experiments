@@ -6,11 +6,13 @@ pub struct image_processor {
 }
 
 impl image_processor {
+
     pub fn new(val: u32) -> Self {
         return image_processor {
             image_resolution: val,
         };
     }
+
     fn preprocess(&self, img: DynamicImage) -> image::RgbaImage {
         let (width, height) = (img.width(), img.height());
         let size = width.min(height);
@@ -24,6 +26,7 @@ impl image_processor {
             imageops::FilterType::CatmullRom,
         )
     }
+
     pub fn decode_and_preprocess(&self, data: Vec<u8>) -> Result<image::RgbaImage, String> {
         match image::load_from_memory(&data) {
             Ok(img) => {

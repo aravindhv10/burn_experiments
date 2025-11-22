@@ -558,6 +558,8 @@
 
   [dependencies]
   image = { version = "0.25.6", features = ["serde", "nasm"] }
+  serde = { version = "1.0.219", features = ["derive"] }
+  tokio = { version = "1.47.1", features = ["full"] }
 #+end_src
 
 *** COMMENT Dependencies
@@ -579,7 +581,6 @@
   log = "0.4.27"
   ndarray = { version = "0.16.1", features = ["blas", "matrixmultiply-threading", "rayon", "serde"] }
   prost = "0.14"
-  serde = { version = "1.0.219", features = ["derive"] }
   thiserror = "2.0.15"
   tokio = { version = "1.47.1", features = ["full"] }
   tonic-prost = "*"
@@ -622,11 +623,13 @@
   }
 
   impl image_processor {
+
       pub fn new(val: u32) -> Self {
           return image_processor {
               image_resolution: val,
           };
       }
+
       fn preprocess(&self, img: DynamicImage) -> image::RgbaImage {
           let (width, height) = (img.width(), img.height());
           let size = width.min(height);
@@ -640,6 +643,7 @@
               imageops::FilterType::CatmullRom,
           )
       }
+
       pub fn decode_and_preprocess(&self, data: Vec<u8>) -> Result<image::RgbaImage, String> {
           match image::load_from_memory(&data) {
               Ok(img) => {
@@ -660,15 +664,23 @@
   include!("export.rs");
 #+end_src
 
+**** List of output labels
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  const CLASS_LABELS: [&str; SIZE_O as usize] = ["empty", "occupied", "other"];
+#+end_src
+
 **** Implement methods for the functions
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   use std::ops::Index;
+
   impl arg_output {
+
       pub fn new() -> Self {
           arg_output {
               val: [0.0; SIZE_O as usize],
           }
       }
+
       pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
           let mut ret = arg_output::new();
           for i in 0..SIZE_O {
@@ -676,6 +688,7 @@
           }
           ret
       }
+
   }
 
   impl Default for arg_output {
@@ -690,16 +703,6 @@
   pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
 
       let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
-      // my_vec will be: [0, 1, 2, 3, 4]
-
-
-      // let tmp = arg_output { val: [0.0; SIZE_O as usize] };
-
-      // let mut output = Vec::<arg_output>::with_capacity(input.len());
-
-      // for _ in 0..input.len() {
-      //     output.push(tmp);
-      // }
 
       unsafe {
           do_infer(input.as_ptr(), input.len() as u32, output.as_mut_ptr());
@@ -709,10 +712,60 @@
   }
 #+end_src
 
-**** COMMENT Actual model wrappers
+**** Reply class
+
+***** Actual structure
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   use serde::Serialize;
 
+  #[derive(Serialize)]
+  pub struct prediction_probabilities_reply {
+      val: [String; SIZE_O as usize],
+      mj: String,
+  }
+#+end_src
+
+***** Methods
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  impl prediction_probabilities_reply {
+
+      pub fn new() -> Self {
+          prediction_probabilities_reply {
+              val: std::array::from_fn(|_| String::new()),
+              mj: String::new(),
+          }
+      }
+
+      pub fn from(input: arg_output) -> prediction_probabilities_reply {
+          let mut max_index: usize = 0;
+          let mut ret = prediction_probabilities_reply::new();
+
+          ret.val[0] = input.val[0].to_string();
+          for i in 1..SIZE_O {
+              ret.val[i as usize] = input.val[i as usize].to_string();
+              if input.val[i as usize] > input.val[max_index] {
+                  max_index = i as usize;
+              }
+          }
+
+          ret.mj = CLASS_LABELS[max_index].to_string();
+
+          return ret;
+      }
+  }
+#+end_src
+
+**** Struct to send the inference request to the inferring thread
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  use tokio;
+  pub struct InferRequest {
+      img: image::RgbaImage,
+      resp_tx: tokio::sync::oneshot::Sender<Result<arg_output, String>>,
+  }
+#+end_src
+
+**** COMMENT Actual model wrappers
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
   use std::ops::Index;
   use std::time::Duration;
 
@@ -720,49 +773,12 @@
   use ndarray::Axis;
   use ndarray::Ix4;
 
-  use tokio;
   use tokio::sync::mpsc;
-  use tokio::sync::oneshot;
 
   use crate::mylib::image_processor;
 
   const MAX_BATCH: usize = 16;
   const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
-  const CLASS_LABELS: [&str; SIZE_O] = ["empty", "occupied", "other"];
-
-
-  #[derive(Serialize)]
-  pub struct prediction_probabilities_reply {
-      val: [String; SIZE_O],
-      mj: String,
-  }
-
-  impl prediction_probabilities_reply {
-      pub fn new() -> Self {
-          prediction_probabilities_reply {
-              val: std::array::from_fn(|_| String::new()),
-              mj: String::new(),
-          }
-      }
-      pub fn from(input: arg_output) -> prediction_probabilities_reply {
-          let mut max_index: usize = 0;
-          let mut ret = prediction_probabilities_reply::new();
-          ret.val[0] = input.val[0].to_string();
-          for i in 1..SIZE_O {
-              ret.val[i] = input.val[i].to_string();
-              if input.val[i] > input.val[max_index] {
-                  max_index = i;
-              }
-          }
-          ret.mj = CLASS_LABELS[max_index].to_string();
-          return ret;
-      }
-  }
-
-  pub struct InferRequest {
-      img: image::RgbaImage,
-      resp_tx: oneshot::Sender<Result<arg_output, String>>,
-  }
 
   pub struct model_server {
       rx: mpsc::Receiver<InferRequest>,
