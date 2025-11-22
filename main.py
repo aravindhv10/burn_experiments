@@ -13,11 +13,23 @@ sys.path.append(basepath)
 IMAGE_RESOLUTION = 448
 BATCH_SIZE = 4
 NUM_CHANNELS = 3
-SIZE_B = BATCH_SIZE
-SIZE_Y = IMAGE_RESOLUTION
-SIZE_X = IMAGE_RESOLUTION
-SIZE_C = NUM_CHANNELS
-INPUT_SHAPE = (SIZE_B, SIZE_Y, SIZE_X, SIZE_C)
+(
+    SIZE_B,
+    SIZE_Y,
+    SIZE_X,
+    SIZE_C,
+) = (
+    BATCH_SIZE,
+    IMAGE_RESOLUTION,
+    IMAGE_RESOLUTION,
+    NUM_CHANNELS,
+)
+INPUT_SHAPE = (
+    SIZE_B,
+    SIZE_Y,
+    SIZE_X,
+    SIZE_C,
+)
 from torch.export.dynamic_shapes import Dim
 import einops
 import timm
@@ -35,12 +47,17 @@ def produce_model(path_file_out):
             mode="max-autotune",
         )
         x = torch.rand(
-            (BATCH_SIZE, INPUT_SIZE),
+            INPUT_SHAPE,
             dtype=torch.float32,
         )
-        y = model(x)
+        # y = model(x)
         dynamic_shapes = {
-            "x": (Dim.DYNAMIC, Dim.STATIC),
+            "x": (
+                Dim.DYNAMIC,
+                Dim.STATIC,
+                Dim.STATIC,
+                Dim.STATIC,
+            ),
         }
         exported_module = torch.export.export(
             model._orig_mod,
