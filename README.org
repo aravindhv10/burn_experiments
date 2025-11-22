@@ -604,7 +604,10 @@
 
 ** Add files to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'src/export.rs'
   GITADD 'src/main.rs'
+  GITADD 'src/model.rs'
+  GITADD 'src/mylib.rs'
 #+end_src
 
 ** Actual code
