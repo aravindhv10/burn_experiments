@@ -337,15 +337,15 @@
 
   extern "C" {
 
-  unsigned long constexpr IMAGE_RESILUTION = 448;
-  unsigned long constexpr NUM_CHANNELS = 3;
-  unsigned long constexpr NUM_CLASSES = 3;
+  unsigned int constexpr IMAGE_RESILUTION = 448;
+  unsigned int constexpr NUM_CHANNELS = 3;
+  unsigned int constexpr NUM_CLASSES = 3;
 
-  unsigned long constexpr SIZE_Y = IMAGE_RESILUTION;
-  unsigned long constexpr SIZE_X = IMAGE_RESILUTION;
-  unsigned long constexpr SIZE_C = NUM_CHANNELS;
+  unsigned int constexpr SIZE_Y = IMAGE_RESILUTION;
+  unsigned int constexpr SIZE_X = IMAGE_RESILUTION;
+  unsigned int constexpr SIZE_C = NUM_CHANNELS;
 
-  unsigned long constexpr SIZE_O = NUM_CLASSES;
+  unsigned int constexpr SIZE_O = NUM_CLASSES;
 
   typedef float outtype;
 
@@ -397,15 +397,14 @@
 #+begin_src c++ :mkdirp yes :tangle ./src/export.hpp
   extern "C" {
 
-  unsigned long constexpr IMAGE_RESILUTION = 448;
-  unsigned long constexpr NUM_CHANNELS = 3;
-  unsigned long constexpr NUM_CLASSES = 3;
+  unsigned int constexpr IMAGE_RESILUTION = 448;
+  unsigned int constexpr NUM_CHANNELS = 3;
+  unsigned int constexpr NUM_CLASSES = 3;
 
-  unsigned long constexpr SIZE_Y = IMAGE_RESILUTION;
-  unsigned long constexpr SIZE_X = IMAGE_RESILUTION;
-  unsigned long constexpr SIZE_C = NUM_CHANNELS;
-
-  unsigned long constexpr SIZE_O = NUM_CLASSES;
+  unsigned int constexpr SIZE_Y = IMAGE_RESILUTION;
+  unsigned int constexpr SIZE_X = IMAGE_RESILUTION;
+  unsigned int constexpr SIZE_C = NUM_CHANNELS;
+  unsigned int constexpr SIZE_O = NUM_CLASSES;
 
   typedef float outtype;
 
@@ -417,7 +416,7 @@
     float val[SIZE_O];
   };
 
-  void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out);
+  void do_infer(arg_input const *in, unsigned int const batch_size, arg_output *out);
   }
 #+end_src
 
@@ -660,16 +659,17 @@
 
 **** Implement methods for the functions
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  use std::ops::Index;
   impl arg_output {
       pub fn new() -> Self {
           arg_output {
-              val: [0.0; SIZE_O],
+              val: [0.0; SIZE_O as usize],
           }
       }
       pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
           let mut ret = arg_output::new();
           for i in 0..SIZE_O {
-              ret.val[i] = input[i];
+              ret.val[i as usize] = input[i as usize];
           }
           ret
       }
