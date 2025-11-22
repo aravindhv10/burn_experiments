@@ -1,5 +1,19 @@
 include!("export.rs");
 
+impl arg_input {
+    pub fn new() -> Self {
+        arg_input {
+            val: [[[0.0; SIZE_C as  usize]; SIZE_X as usize]; SIZE_X as usize],
+        }
+    }
+}
+
+impl Default for arg_input {
+    fn default() -> Self {
+        arg_input::new()
+    }
+}
+
 const CLASS_LABELS: [&str; SIZE_O as usize] = ["empty", "occupied", "other"];
 
 impl arg_output {
@@ -69,8 +83,6 @@ impl prediction_probabilities_reply {
         return ret;
     }
 }
-
-use tokio;
 
 pub struct InferRequest {
     img: image::RgbaImage,

@@ -22,10 +22,12 @@
 ** Important functions
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./host.image_names.sh
   RUN_CONTAINER () {
+      mkdir -pv -- './cache'
       CMD='sudo -A docker'
       which podman && CMD='podman'
       ${CMD} run -it --rm \
           -v "$(realpath .):/data" \
+          -v "$(realpath .)/cache:/root/.cache" \
           "${IMAGE_NAME}" zsh ;
   }
 #+end_src
@@ -661,12 +663,29 @@
   include!("export.rs");
 #+end_src
 
+**** Implement methods for input class
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  impl arg_input {
+      pub fn new() -> Self {
+          arg_input {
+              val: [[[0.0; SIZE_C as  usize]; SIZE_X as usize]; SIZE_X as usize],
+          }
+      }
+  }
+
+  impl Default for arg_input {
+      fn default() -> Self {
+          arg_input::new()
+      }
+  }
+#+end_src
+
 **** List of output labels
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   const CLASS_LABELS: [&str; SIZE_O as usize] = ["empty", "occupied", "other"];
 #+end_src
 
-**** Implement methods for the functions
+**** Implement methods for output class
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl arg_output {
 
@@ -750,33 +769,25 @@
 
 **** Struct to send the inference request to the inferring thread
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  use tokio;
-
   pub struct InferRequest {
       img: image::RgbaImage,
       resp_tx: tokio::sync::oneshot::Sender<Result<arg_output, String>>,
   }
 #+end_src
 
-**** COMMENT Actual model wrappers
+**** COMMENT Model server
+
+***** Actual struct
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  use std::ops::Index;
-  use std::time::Duration;
+  pub struct model_server {
+      rx: tokio::sync::mpsc::Receiver<InferRequest>,
+  }
+#+end_src
 
-  use ndarray::Array;
-  use ndarray::Axis;
-  use ndarray::Ix4;
-
-  use tokio::sync::mpsc;
-
-  use crate::mylib::image_processor;
-
+***** COMMENT Methods
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
   const MAX_BATCH: usize = 16;
   const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
-
-  pub struct model_server {
-      rx: mpsc::Receiver<InferRequest>,
-  }
 
   impl model_server {
       pub async fn infer_loop(&mut self) {
@@ -790,6 +801,9 @@
                   }
               }
               let batch_size = batch.len();
+
+              let mut input: Vec<arg_input> = (0..batch_size).map(|_|{arg_input::new()}).collect(); 
+              
               let mut input = Array::<u8, Ix4>::zeros((
                   batch_size,
                   IMAGE_RESOLUTION as usize,
@@ -828,6 +842,21 @@
           }
       }
   }
+#+end_src
+
+**** COMMENT Actual model wrappers
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  use std::ops::Index;
+  use std::time::Duration;
+
+  use ndarray::Array;
+  use ndarray::Axis;
+  use ndarray::Ix4;
+
+  use tokio::sync::mpsc;
+
+  use crate::mylib::image_processor;
+
 
   pub struct model_client {
       tx: mpsc::Sender<InferRequest>,
