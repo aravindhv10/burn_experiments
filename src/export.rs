@@ -23,7 +23,7 @@ const _: () = {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct arg_output {
-    pub val: [f32; 3usize],
+    pub val: [outtype; 3usize],
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
