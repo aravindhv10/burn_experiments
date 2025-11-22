@@ -73,11 +73,15 @@
 **** config standard variables
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.config.py
   IMAGE_RESOLUTION = 448
-  SIZE_X = IMAGE_RESOLUTION
-  SIZE_Y = IMAGE_RESOLUTION
-  SIZE_C = 3
   BATCH_SIZE = 4
-  INPUT_SHAPE = (BATCH_SIZE, SIZE_Y, SIZE_X, SIZE_C)
+  NUM_CHANNELS = 3
+
+  SIZE_B = BATCH_SIZE
+  SIZE_Y = IMAGE_RESOLUTION
+  SIZE_X = IMAGE_RESOLUTION
+  SIZE_C = NUM_CHANNELS
+
+  INPUT_SHAPE = (SIZE_B, SIZE_Y, SIZE_X, SIZE_C)
 #+end_src
 
 **** import important libraries
@@ -91,7 +95,65 @@
 **** class to define the actual model
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.class.py
   class model_wrapper(torch.nn.Module):
-      def setup_stat_parameters_as_float(self):
+      ################################################################
+      ## Forward related functions BEGIN #############################
+      ################################################################
+
+      def forward_1_rearrange(
+          self,
+          x: torch.Tensor,
+      ):
+          x = einops.rearrange(
+              x,
+              "B Y X C -> B C Y X",
+          )
+          return x
+
+      def forward_2_normalize(
+          self,
+          x: torch.Tensor,
+      ):
+          for i in range(SIZE_C):
+              x[:, i, :, :] = ((x[:, i, :, :] / 255.0) - self.mean[i]) / self.std[i]
+
+          return x
+
+      def forward_3_backbone(
+          self,
+          x: torch.Tensor,
+      ):
+          x = self.timm_model(x)
+          return x
+
+      def forward_4_postprocess(
+          self,
+          x: torch.Tensor,
+      ):
+          x = torch.nn.functional.softmax(
+              x,
+              dim=1,
+          )
+          return x
+
+      def forward(
+          self,
+          x: torch.Tensor,
+      ):
+          x = self.forward_1_rearrange(x)
+          x = self.forward_2_normalize(x)
+          x = self.forward_3_backbone(x)
+          x = self.forward_4_postprocess(x)
+          return x
+
+      ################################################################
+      ## Forward related functions END ###############################
+      ################################################################
+
+      ################################################################
+      ## Init related functions BEGIN ################################
+      ################################################################
+
+      def init_setup_stat_parameters_as_float(self):
           self.mean = (
               0.48145466,
               0.4578275,
@@ -103,21 +165,21 @@
               0.27577711,
           )
 
-      def __init__(self):
-          super().__init__()
-          self.L1 = torch.nn.Linear(
-              in_features=INPUT_SIZE,
-              out_features=4,
-              bias=True,
-              dtype=torch.float32,
+      def init_timm_model(self):
+          self.timm_model = timm.create_model(
+              "eva02_large_patch14_448.mim_m38m_ft_in22k_in1k",
+              num_classes=3,
+              pretrained=True,
           )
 
-      def forward(
-          self,
-          x: torch.Tensor,
-      ):
-          x = self.L1(x)
-          return x
+      def __init__(self):
+          super().__init__()
+          self.init_setup_stat_parameters_as_float()
+          self.init_timm_model()
+
+      ################################################################
+      ## Init related functions END ##################################
+      ################################################################
 #+end_src
 
 **** function to produce the export
