@@ -164,32 +164,34 @@
 
 *** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD 'main.py'
+  PREPARE_PYTHON_FILE 'compile'
 #+end_src
 
 *** Actual file
-#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.py
+
+**** config basic variables
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.config.py
   import os
   import sys
+#+end_src
 
-  INPUT_SIZE = 100
-  BATCH_SIZE = 4
-  import einops
-  import timm
+**** import important libraries
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.import.py
   import torch
-  from torch.export.dynamic_shapes import Dim
+#+end_src
 
-
+**** function to compile the export program using AOTinductor
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.function.py
   def compile_to_dynamo(path_file_in, path_file_out):
       exported_module = torch.export.load(f=path_file_in)
       output_path = torch._inductor.aoti_compile_and_package(
           exported_module,
-          # [Optional] Specify the generated shared library path. If not specified,
-          # the generated artifact is stored in your system temp directory.
           package_path=path_file_out,
       )
+#+end_src
 
-
+**** execute the compiling function
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.execute.py
   compile_to_dynamo(
       path_file_in=sys.argv[1],
       path_file_out=sys.argv[2],
