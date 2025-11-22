@@ -10,6 +10,8 @@ unsigned long constexpr SIZE_C = NUM_CHANNELS;
 
 unsigned long constexpr SIZE_O = NUM_CLASSES;
 
+typedef float outtype;
+
 struct arg_input {
   float val[SIZE_Y][SIZE_X][SIZE_C];
 };

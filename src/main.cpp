@@ -12,12 +12,14 @@ unsigned long constexpr SIZE_C = NUM_CHANNELS;
 
 unsigned long constexpr SIZE_O = NUM_CLASSES;
 
+typedef float outtype;
+
 struct arg_input {
-  float val[SIZE_Y][SIZE_X][SIZE_C];
+  outtype val[SIZE_Y][SIZE_X][SIZE_C];
 };
 
 struct arg_output {
-  float val[SIZE_O];
+  outtype val[SIZE_O];
 };
 
 void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) {
@@ -42,7 +44,7 @@ void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) {
 
   for (int B = 0; B < batch_size; ++B) {
     for (int O = 0; O < SIZE_O; ++O) {
-      out[B].val[O] = outputs[0][B][O].item<float>();
+      out[B].val[O] = outputs[0][B][O].item<outtype>();
     }
   }
 }

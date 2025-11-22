@@ -347,12 +347,14 @@
 
   unsigned long constexpr SIZE_O = NUM_CLASSES;
 
+  typedef float outtype;
+
   struct arg_input {
-    float val[SIZE_Y][SIZE_X][SIZE_C];
+    outtype val[SIZE_Y][SIZE_X][SIZE_C];
   };
 
   struct arg_output {
-    float val[SIZE_O];
+    outtype val[SIZE_O];
   };
 
   void do_infer(arg_input const *in, unsigned int batch_size, arg_output *out) {
@@ -377,7 +379,7 @@
 
     for (int B = 0; B < batch_size; ++B) {
       for (int O = 0; O < SIZE_O; ++O) {
-        out[B].val[O] = outputs[0][B][O].item<float>();
+        out[B].val[O] = outputs[0][B][O].item<outtype>();
       }
     }
   }
@@ -404,6 +406,8 @@
   unsigned long constexpr SIZE_C = NUM_CHANNELS;
 
   unsigned long constexpr SIZE_O = NUM_CLASSES;
+
+  typedef float outtype;
 
   struct arg_input {
     float val[SIZE_Y][SIZE_X][SIZE_C];
@@ -654,6 +658,30 @@
   include!("export.rs");
 #+end_src
 
+**** Implement methods for the functions
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
+  impl arg_output {
+      pub fn new() -> Self {
+          arg_output {
+              val: [0.0; SIZE_O],
+          }
+      }
+      pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
+          let mut ret = arg_output::new();
+          for i in 0..SIZE_O {
+              ret.val[i] = input[i];
+          }
+          ret
+      }
+  }
+
+  impl Default for arg_output {
+      fn default() -> Self {
+          arg_output::new()
+      }
+  }
+#+end_src
+
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
@@ -690,26 +718,10 @@
 
   use crate::mylib::image_processor;
 
-  type outtype = f32;
-
   const MAX_BATCH: usize = 16;
   const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
   const CLASS_LABELS: [&str; SIZE_O] = ["empty", "occupied", "other"];
 
-  impl arg_output {
-      pub fn new() -> Self {
-          arg_output {
-              val: [0.0; SIZE_O],
-          }
-      }
-      pub fn from<T: Index<usize, Output = outtype>>(input: T) -> Self {
-          let mut ret = arg_output::new();
-          for i in 0..SIZE_O {
-              ret.val[i] = input[i];
-          }
-          ret
-      }
-  }
 
   #[derive(Serialize)]
   pub struct prediction_probabilities_reply {
