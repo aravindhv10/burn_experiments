@@ -729,7 +729,7 @@
           let mut ret = prediction_probabilities_reply::new();
           ret.val[0] = input.val[0].to_string();
           for i in 1..SIZE_O {
-              ret.ps[i] = input.val[i].to_string();
+              ret.val[i] = input.val[i].to_string();
               if input.val[i] > input.val[max_index] {
                   max_index = i;
               }
@@ -741,12 +741,11 @@
 
   pub struct InferRequest {
       img: image::RgbaImage,
-      resp_tx: oneshot::Sender<Result<arg_input, String>>,
+      resp_tx: oneshot::Sender<Result<arg_output, String>>,
   }
 
   pub struct model_server {
       rx: mpsc::Receiver<InferRequest>,
-      session: Session,
   }
 
   impl model_server {
