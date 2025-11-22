@@ -254,6 +254,22 @@
   produce_model(path_file_out=sys.argv[1])
 #+end_src
 
+** Shell script to compile the model only when necessary
+
+*** Add script to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'compile.sh'
+#+end_src
+
+*** Actual script
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile.sh
+  H="$(cat './model_input.pt2' './compile.py' | sha512sum | cut -d ' ' -f1)"
+  test -e "${H}.pt2" && exit '0'
+  ./compile.sh './model_input.pt2' "./${H}.pt2"
+  ln -vfs -- "./${H}.pt2" './model_output.pt2'
+  exit '0'
+#+end_src
+
 ** Compile the model
 
 *** Add the file to git
@@ -429,15 +445,16 @@
   	rm -rf -- build src/all.hpp target
 
   model_output.pt2: model_input.pt2 compile.py
-  	./compile.py model_input.pt2 model_output.pt2
+  	./compile.sh
+  	touch ./model_output.pt2 
 
   src/export.rs: src/export.hpp
   	bindgen src/export.hpp > src/export.rs
 
   model_input.pt2: main.py
-  	./main.py
+  	./main.sh
+  	touch ./model_input.pt2
 #+end_src
-
 
 ** Script to compile
 

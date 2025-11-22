@@ -17,10 +17,12 @@ clean:
 	rm -rf -- build src/all.hpp target
 
 model_output.pt2: model_input.pt2 compile.py
-	./compile.py model_input.pt2 model_output.pt2
+	./compile.sh
+	touch ./model_output.pt2 
 
 src/export.rs: src/export.hpp
 	bindgen src/export.hpp > src/export.rs
 
 model_input.pt2: main.py
-	./main.py
+	./main.sh
+	touch ./model_input.pt2
