@@ -680,12 +680,15 @@
   }
 #+end_src
 
-**** List of output labels
+
+**** Implement methods for output class
+
+***** List of output labels
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   const CLASS_LABELS: [&str; SIZE_O as usize] = ["empty", "occupied", "other"];
 #+end_src
 
-**** Implement methods for output class
+***** Actual functions
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl arg_output {
 
@@ -740,7 +743,6 @@
 ***** Methods
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl prediction_probabilities_reply {
-
       pub fn new() -> Self {
           prediction_probabilities_reply {
               val: std::array::from_fn(|_| String::new()),
@@ -775,7 +777,7 @@
   }
 #+end_src
 
-**** COMMENT Model server
+**** Model server
 
 ***** Actual struct
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
@@ -784,11 +786,14 @@
   }
 #+end_src
 
-***** COMMENT Methods
+***** Important configs
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   const MAX_BATCH: usize = 16;
-  const BATCH_TIMEOUT: Duration = Duration::from_millis(200);
+  const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
+#+end_src
 
+***** Methods
+#+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl model_server {
       pub async fn infer_loop(&mut self) {
           while let Some(first) = self.rx.recv().await {
@@ -804,41 +809,23 @@
 
               let mut input: Vec<arg_input> = (0..batch_size).map(|_|{arg_input::new()}).collect(); 
               
-              let mut input = Array::<u8, Ix4>::zeros((
-                  batch_size,
-                  IMAGE_RESOLUTION as usize,
-                  IMAGE_RESOLUTION as usize,
-                  3,
-              ));
-              for (i, req) in batch.iter().enumerate() {
+              for (b, req) in batch.iter().enumerate() {
                   for (x, y, pixel) in req.img.enumerate_pixels() {
                       let [r, g, b, _] = pixel.0;
-                      input[[i, y as usize, x as usize, 0]] = r;
-                      input[[i, y as usize, x as usize, 1]] = g;
-                      input[[i, y as usize, x as usize, 2]] = b;
+                      input[b as usize].val[y as usize][x as usize][0] = r as f32;
+                      input[b as usize].val[y as usize][x as usize][1] = g as f32;
+                      input[b as usize].val[y as usize][x as usize][2] = b as f32;
                   }
               }
-              let outputs = match self
-                  .session
-                  .run(inputs!["input" => TensorRef::from_array_view(&input).unwrap()])
-              {
-                  Ok(o) => o,
-                  Err(e) => {
-                      for req in batch {
-                          let _ = req.resp_tx.send(Err(format!("inference error: {}", e)));
-                      }
-                      continue;
-                  }
-              };
-              let output = outputs["output"]
-                  .try_extract_array::<outtype>()
-                  .unwrap()
-                  .t()
-                  .into_owned();
-              for (row, req) in output.axis_iter(Axis(1)).zip(batch.into_iter()) {
-                  let result = arg_input::from(row);
-                  let _ = req.resp_tx.send(Ok(result));
+              let outputs = run_inference(input) ;
+              for (b, out) in outputs.iter().enumerate() {
+
               }
+                  
+              // for (row, req) in output.axis_iter(Axis(1)).zip(batch.into_iter()) {
+              //     let result = arg_input::from(row);
+              //     let _ = req.resp_tx.send(Ok(result));
+              // }
           }
       }
   }

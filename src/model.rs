@@ -58,7 +58,6 @@ pub struct prediction_probabilities_reply {
 }
 
 impl prediction_probabilities_reply {
-
     pub fn new() -> Self {
         prediction_probabilities_reply {
             val: std::array::from_fn(|_| String::new()),
@@ -87,4 +86,47 @@ impl prediction_probabilities_reply {
 pub struct InferRequest {
     img: image::RgbaImage,
     resp_tx: tokio::sync::oneshot::Sender<Result<arg_output, String>>,
+}
+
+pub struct model_server {
+    rx: tokio::sync::mpsc::Receiver<InferRequest>,
+}
+
+const MAX_BATCH: usize = 16;
+const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
+
+impl model_server {
+    pub async fn infer_loop(&mut self) {
+        while let Some(first) = self.rx.recv().await {
+            let mut batch = vec![first];
+            let start = tokio::time::Instant::now();
+            while batch.len() < MAX_BATCH && start.elapsed() < BATCH_TIMEOUT {
+                match self.rx.try_recv() {
+                    Ok(req) => batch.push(req),
+                    Err(_) => break,
+                }
+            }
+            let batch_size = batch.len();
+
+            let mut input: Vec<arg_input> = (0..batch_size).map(|_|{arg_input::new()}).collect(); 
+            
+            for (b, req) in batch.iter().enumerate() {
+                for (x, y, pixel) in req.img.enumerate_pixels() {
+                    let [r, g, b, _] = pixel.0;
+                    input[b as usize].val[y as usize][x as usize][0] = r as f32;
+                    input[b as usize].val[y as usize][x as usize][1] = g as f32;
+                    input[b as usize].val[y as usize][x as usize][2] = b as f32;
+                }
+            }
+            let outputs = run_inference(input) ;
+            for (b, out) in outputs.iter().enumerate() {
+
+            }
+                
+            // for (row, req) in output.axis_iter(Axis(1)).zip(batch.into_iter()) {
+            //     let result = arg_input::from(row);
+            //     let _ = req.resp_tx.send(Ok(result));
+            // }
+        }
+    }
 }
