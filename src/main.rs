@@ -2,7 +2,7 @@ mod model;
 mod mylib;
 fn main() {
     let mut input = crate::model::arg_input {
-        val: [[[0.0; 3usize]; 448usize]; 448usize],
+        val: [[[0.0; model::SIZE_C as usize]; model::SIZE_Y as usize]; model::SIZE_X as usize],
     };
 
     let vec_input = vec![input, input, input];
