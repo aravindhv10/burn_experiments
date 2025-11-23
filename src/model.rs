@@ -110,12 +110,12 @@ impl model_server {
 
             let mut input: Vec<arg_input> = (0..batch_size).map(|_|{arg_input::new()}).collect(); 
             
-            for (b, req) in batch.iter().enumerate() {
-                for (x, y, pixel) in req.img.enumerate_pixels() {
+            for (B, req) in batch.iter().enumerate() {
+                for (X, Y, pixel) in req.img.enumerate_pixels() {
                     let [r, g, b, _] = pixel.0;
-                    input[b as usize].val[y as usize][x as usize][0] = r as f32;
-                    input[b as usize].val[y as usize][x as usize][1] = g as f32;
-                    input[b as usize].val[y as usize][x as usize][2] = b as f32;
+                    input[B as usize].val[Y as usize][X as usize][0] = r as f32;
+                    input[B as usize].val[Y as usize][X as usize][1] = g as f32;
+                    input[B as usize].val[Y as usize][X as usize][2] = b as f32;
                 }
             }
             let outputs = run_inference(input) ;
