@@ -29,6 +29,8 @@
           -v "$(realpath .)/cache:/root/.cache" \
           "${IMAGE_NAME}" zsh ;
   }
+
+  RUN_CONTAINER
 #+end_src
 
 * Python file to produce the model file and compile it

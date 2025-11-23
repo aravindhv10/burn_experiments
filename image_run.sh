@@ -12,3 +12,5 @@ RUN_CONTAINER () {
         -v "$(realpath .)/cache:/root/.cache" \
         "${IMAGE_NAME}" zsh ;
 }
+
+RUN_CONTAINER
