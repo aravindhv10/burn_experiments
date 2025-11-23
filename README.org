@@ -361,14 +361,18 @@
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   #include "./all.hpp"
 
+  static c10::InferenceMode mode;
+  static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
+
   extern "C" {
 
   void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {
-
-    std::cout << "Came inside mylibtorchinfer" << std::endl ;
+    out[0].val[0] = 1.0;
 
     // static c10::InferenceMode mode;
     // static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
+
+    // std::cout << "Came inside mylibtorchinfer" << std::endl ;
 
     // auto options =
     //     torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
