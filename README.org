@@ -375,32 +375,10 @@
 
     std::vector<torch::Tensor> inputs = {input_tensor};
 
-    // inputs.reserve(1);
-    // inputs.push_back(input_tensor);
-
-    // std::vector<torch::Tensor> inputs = {
-    //     torch::zeros({batch_size, SIZE_Y, SIZE_X, SIZE_C}, at::kCPU)};
-
-    // for (int B = 0; B < batch_size; ++B) {
-    //   for (int Y = 0; Y < SIZE_Y; ++Y) {
-    //     for (int X = 0; X < SIZE_X; ++X) {
-    //       for (int C = 0; C < SIZE_C; ++C) {
-    //         inputs[0][B][Y][X][C] = in[B].val[Y][X][C];
-    //       }
-    //     }
-    //   }
-    // }
-
     std::vector<torch::Tensor> outputs = loader.run(inputs);
     torch::Tensor out_tensor = outputs[0].contiguous().cpu();
     std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
     std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
-
-    // for (int B = 0; B < batch_size; ++B) {
-    //   for (int O = 0; O < SIZE_O; ++O) {
-    //     out[B].val[O] = outputs[0][B][O].item<outtype>();
-    //   }
-    // }
   }
   }
 #+end_src
@@ -551,43 +529,6 @@
   tonic = { version = "0.14.2", features = ["zstd"] }
 #+end_src
 
-*** COMMENT Dependencies
-#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
-  [dependencies]
-  actix-multipart = "0.7.2"
-  actix-web = "4.11.0"
-  bincode = { version = "2.0.1", features = ["serde"] }
-  env_logger = "0.11.8"
-  futures = "0.3.31"
-  futures-util = "0.3.31"
-  gxhash = "3.5.0"
-  image = { version = "0.25.6", features = ["serde", "nasm"] }
-  lockfree = "0.5.1"
-  log = "0.4.27"
-  ndarray = { version = "0.16.1", features = ["blas", "matrixmultiply-threading", "rayon", "serde"] }
-  prost = "0.14"
-  thiserror = "2.0.15"
-  tokio = { version = "1.47.1", features = ["full"] }
-  tonic-prost = "*"
-  tonic = { version = "0.14.2", features = ["zstd"] }
-#+end_src
-
-* build.rs
-
-** Add the file to git
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD 'build.rs'
-#+end_src
-
-** Actual file
-#+begin_src rust :mkdirp yes :tangle ./build.rs
-  fn main() -> Result<(), Box<dyn std::error::Error>> {
-      tonic_prost_build::compile_protos("./infer.proto")?;
-      println!("cargo:rustc-link-arg=-lmytorch");
-      Ok(())
-  }
-#+end_src
-
 * proto file
 
 ** Add the file
@@ -613,6 +554,22 @@
 
   service Infer {
     rpc doInfer(Image) returns (Prediction) {}
+  }
+#+end_src
+
+* build.rs
+
+** Add the file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'build.rs'
+#+end_src
+
+** Actual file
+#+begin_src rust :mkdirp yes :tangle ./build.rs
+  fn main() -> Result<(), Box<dyn std::error::Error>> {
+      tonic_prost_build::compile_protos("./infer.proto")?;
+      println!("cargo:rustc-link-arg=-lmytorch");
+      Ok(())
   }
 #+end_src
 
@@ -669,7 +626,7 @@
   }
 #+end_src
 
-*** Main model code
+*** Model code
 
 **** Outputs from bindgen
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
@@ -904,14 +861,10 @@
 
 *** Main code
 
-**** New
-
-***** Fixed
+**** Fixed
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   mod model;
   mod mylib;
-
-  use tokio;
 
   use futures_util::TryStreamExt;
 
@@ -972,7 +925,7 @@
   }
 #+end_src
 
-***** Not fixed
+**** Not fixed
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[actix_web::main]
   async fn main() -> () {

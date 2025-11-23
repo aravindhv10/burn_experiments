@@ -1,8 +1,6 @@
 mod model;
 mod mylib;
 
-use tokio;
-
 use futures_util::TryStreamExt;
 
 async fn infer_handler(

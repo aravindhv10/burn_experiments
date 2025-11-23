@@ -15,31 +15,9 @@ void do_infer(arg_input *in, unsigned int batch_size, arg_output *out) {
 
   std::vector<torch::Tensor> inputs = {input_tensor};
 
-  // inputs.reserve(1);
-  // inputs.push_back(input_tensor);
-
-  // std::vector<torch::Tensor> inputs = {
-  //     torch::zeros({batch_size, SIZE_Y, SIZE_X, SIZE_C}, at::kCPU)};
-
-  // for (int B = 0; B < batch_size; ++B) {
-  //   for (int Y = 0; Y < SIZE_Y; ++Y) {
-  //     for (int X = 0; X < SIZE_X; ++X) {
-  //       for (int C = 0; C < SIZE_C; ++C) {
-  //         inputs[0][B][Y][X][C] = in[B].val[Y][X][C];
-  //       }
-  //     }
-  //   }
-  // }
-
   std::vector<torch::Tensor> outputs = loader.run(inputs);
   torch::Tensor out_tensor = outputs[0].contiguous().cpu();
   std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
   std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
-
-  // for (int B = 0; B < batch_size; ++B) {
-  //   for (int O = 0; O < SIZE_O; ++O) {
-  //     out[B].val[O] = outputs[0][B][O].item<outtype>();
-  //   }
-  // }
 }
 }
