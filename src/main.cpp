@@ -2,22 +2,24 @@
 
 extern "C" {
 
-void do_infer(arg_input *in, unsigned int batch_size, arg_output *out) {
+void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {
 
-  static c10::InferenceMode mode;
-  static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
+  std::cout << "Came inside mylibtorchinfer" << std::endl ;
 
-  auto options =
-      torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+  // static c10::InferenceMode mode;
+  // static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
 
-  torch::Tensor input_tensor = torch::from_blob(
-      static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
+  // auto options =
+  //     torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
 
-  std::vector<torch::Tensor> inputs = {input_tensor};
+  // torch::Tensor input_tensor = torch::from_blob(
+  //     static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
 
-  std::vector<torch::Tensor> outputs = loader.run(inputs);
-  torch::Tensor out_tensor = outputs[0].contiguous().cpu();
-  std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
-  std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
+  // std::vector<torch::Tensor> inputs = {input_tensor};
+
+  // std::vector<torch::Tensor> outputs = loader.run(inputs);
+  // torch::Tensor out_tensor = outputs[0].contiguous().cpu();
+  // std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
+  // std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
 }
 }

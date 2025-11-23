@@ -18,6 +18,10 @@ include = [
 name = "infer-server"
 path = "src/main.rs"
 
+[[bin]]
+name = "infer-client"
+path = "src/client.rs"
+
 [build-dependencies]
 tonic-prost-build = "0.14.2"
 

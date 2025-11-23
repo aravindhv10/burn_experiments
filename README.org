@@ -330,7 +330,7 @@
     outtype val[SIZE_O];
   };
 
-  void do_infer(arg_input *in, unsigned int const batch_size, arg_output *out);
+  void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out);
   }
 #+end_src
 
@@ -347,6 +347,7 @@
   #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
   #include <torch/torch.h>
   #include <vector>
+  #include <iostream>
 #+end_src
 
 ** Main C++ code
@@ -362,23 +363,25 @@
 
   extern "C" {
 
-  void do_infer(arg_input *in, unsigned int batch_size, arg_output *out) {
+  void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {
 
-    static c10::InferenceMode mode;
-    static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
+    std::cout << "Came inside mylibtorchinfer" << std::endl ;
 
-    auto options =
-        torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+    // static c10::InferenceMode mode;
+    // static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
 
-    torch::Tensor input_tensor = torch::from_blob(
-        static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
+    // auto options =
+    //     torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
 
-    std::vector<torch::Tensor> inputs = {input_tensor};
+    // torch::Tensor input_tensor = torch::from_blob(
+    //     static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
 
-    std::vector<torch::Tensor> outputs = loader.run(inputs);
-    torch::Tensor out_tensor = outputs[0].contiguous().cpu();
-    std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
-    std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
+    // std::vector<torch::Tensor> inputs = {input_tensor};
+
+    // std::vector<torch::Tensor> outputs = loader.run(inputs);
+    // torch::Tensor out_tensor = outputs[0].contiguous().cpu();
+    // std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
+    // std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
   }
   }
 #+end_src
@@ -503,10 +506,19 @@
 #+end_src
 
 *** List of files to compile
+
+**** Server
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   [[bin]]
   name = "infer-server"
   path = "src/main.rs"
+#+end_src
+
+**** GRPC Client
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  [[bin]]
+  name = "infer-client"
+  path = "src/client.rs"
 #+end_src
 
 *** List of build dependencies
@@ -570,6 +582,33 @@
       tonic_prost_build::compile_protos("./infer.proto")?;
       println!("cargo:rustc-link-arg=-lmytorch");
       Ok(())
+  }
+#+end_src
+
+* GRPC inference code
+
+** Add files to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'src/client.rs'
+#+end_src
+
+** Code for client
+#+begin_src rust :mkdirp yes :tangle ./src/client.rs
+  pub mod infer {
+      tonic::include_proto!("infer"); // The string specified here must match the proto package name
+  }
+
+  // use std::error::Error;
+  use std::fs;
+
+  #[tokio::main]
+  async fn main() -> Result<(), Box<dyn std::error::Error>> {
+      let data = fs::read("./image.png").expect("Failed reading image file");
+      let img = infer::Image { image_data: data };
+      let mut client = infer::infer_client::InferClient::connect("http://127.0.0.1:8001").await?;
+      let res = client.do_infer(img).await?;
+      println!("{:?}", res);
+      return Ok(());
   }
 #+end_src
 
@@ -688,10 +727,14 @@
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   pub fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
 
+      println!("Inside run_inference");
+
       let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
 
+      println!("Calling the c++ wrapper");
+
       unsafe {
-          do_infer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
+          mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
       }
 
       output
@@ -908,6 +951,7 @@
       async fn do_infer(&self, request: tonic::Request<infer::Image>) -> Result<tonic::Response<infer::Prediction>, tonic::Status> {
           println!("Received gRPC request");
           let image_data = request.into_inner().image_data;
+          println!("Calling the inference function");
           match self.slave_client.do_infer_data(image_data).await {
               Ok(pred) => {
                   let reply = infer::Prediction {
@@ -925,7 +969,21 @@
   }
 #+end_src
 
-**** Not fixed
+**** Only start the grpc server
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
+  #[tokio::main]
+  async fn main() -> () {
+      let (mut slave_server, slave_client) = crate::model::get_inference_tuple();
+      let ip_v4 = std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0));
+      let addr = std::net::SocketAddr::new(ip_v4, 8001);
+      let inferer_service = MyInferer{slave_client: std::sync::Arc::new(slave_client)};
+      let future_grpc = tonic::transport::Server::builder().add_service(infer::infer_server::InferServer::new(inferer_service)).serve(addr);
+      let future_infer = slave_server.infer_loop();
+      let (first, second) = tokio::join!(future_infer, future_grpc);
+  }
+#+end_src
+
+**** COMMENT Start the actix and grpc server
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[actix_web::main]
   async fn main() -> () {
@@ -976,14 +1034,23 @@
 ** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   GITADD 'run.sh'
+  GITADD 'infer.sh'
 #+end_src
 
-** Actual file
+** Run server
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
   make -j
   export RUSTFLAGS="-C target-cpu=native"
-  cargo run --release infer-server
+  cargo run --bin infer-server --release 
+#+end_src
+
+** Run Client
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./infer.sh
+  cd "$(dirname -- "${0}")"
+  make -j
+  export RUSTFLAGS="-C target-cpu=native"
+  cargo run --bin infer-client --release 
 #+end_src
 
 * COMMENT Work space

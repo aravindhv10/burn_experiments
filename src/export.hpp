@@ -20,5 +20,5 @@ struct arg_output {
   outtype val[SIZE_O];
 };
 
-void do_infer(arg_input *in, unsigned int const batch_size, arg_output *out);
+void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out);
 }
