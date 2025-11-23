@@ -542,7 +542,16 @@
   [[bin]]
   name = "infer-server"
   path = "src/main.rs"
+#+end_src
 
+*** List of build dependencies
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  [build-dependencies]
+  tonic-prost-build = "0.14.2"
+#+end_src
+
+*** List of dependencies
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   [dependencies]
   image = { version = "0.25.6", features = ["serde", "nasm"] }
   prost = "0.14"
@@ -554,16 +563,6 @@
 
 *** COMMENT Dependencies
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
-
-
-  [build-dependencies]
-  tonic-prost-build = "0.14.2"
-
-
-  [[bin]]
-  name = "infer-server"
-  path = "src/main.rs"
-
   [dependencies]
   tonic = { version = "0.14.2", features = ["zstd"] }
   actix-multipart = "0.7.2"
@@ -594,7 +593,7 @@
 ** Actual file
 #+begin_src rust :mkdirp yes :tangle ./build.rs
   fn main() -> Result<(), Box<dyn std::error::Error>> {
-      // tonic_prost_build::compile_protos("./infer.proto")?;
+      tonic_prost_build::compile_protos("./infer.proto")?;
       println!("cargo:rustc-link-arg=-lmytorch");
       Ok(())
   }

@@ -18,6 +18,9 @@ include = [
 name = "infer-server"
 path = "src/main.rs"
 
+[build-dependencies]
+tonic-prost-build = "0.14.2"
+
 [dependencies]
 image = { version = "0.25.6", features = ["serde", "nasm"] }
 prost = "0.14"
