@@ -32,9 +32,5 @@ const _: () = {
     ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
 };
 unsafe extern "C" {
-    pub fn do_infer(
-        in_: *const arg_input,
-        batch_size: ::std::os::raw::c_uint,
-        out: *mut arg_output,
-    );
+    pub fn do_infer(in_: *mut arg_input, batch_size: ::std::os::raw::c_uint, out: *mut arg_output);
 }

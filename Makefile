@@ -3,7 +3,7 @@ CC=clang++
 install: build/libmytorch.so model_output.pt2 src/export.rs
 	cp -vf -- build/libmytorch.so /lib/
 
-src/all.hpp: src/main.hpp
+src/all.hpp: src/main.hpp src/export.hpp
 	$(CC) src/main.hpp -o src/all.hpp -E -I/usr/include/torch/csrc/api/include/
 
 build/main.o: src/main.cpp src/all.hpp

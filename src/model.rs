@@ -40,12 +40,12 @@ impl Default for arg_output {
     }
 }
 
-pub fn run_inference(input: Vec<arg_input>) -> Vec<arg_output> {
+pub fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
 
     let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
 
     unsafe {
-        do_infer(input.as_ptr(), input.len() as u32, output.as_mut_ptr());
+        do_infer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
     }
 
     output
