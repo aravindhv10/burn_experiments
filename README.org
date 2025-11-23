@@ -1020,7 +1020,46 @@
   }
 #+end_src
 
-**** Start the actix and grpc server
+**** Actual functions to start actix and tonic
+
+***** Actix
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
+  async fn main_actix(slave_client_1: std::sync::Arc<crate::model::model_client>) -> () {
+        match actix_web::HttpServer::new(move || {
+            actix_web::App::new()
+                .app_data(actix_web::web::Data::new(std::sync::Arc::clone(&slave_client_1)))
+                .route("/infer", actix_web::web::post().to(infer_handler))
+        })
+        .bind(("0.0.0.0", 8000))
+        {
+            Ok(ret) => {
+                let future_rest_server = ret.run().await;
+            }
+            Err(e) => {
+                eprintln!("Failed to bind to port");
+            }
+        }
+  }
+#+end_src
+
+***** Tonic
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
+#+end_src
+
+**** Simpler main
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
+  fn main() {
+      let (mut slave_server, slave_client) = crate::model::get_inference_tuple();
+      let rt = tokio::runtime::Runtime::new().unwrap();
+      rt.block_on(async {
+          let future_infer = slave_server.infer_loop();
+          let future_actix = main_actix(std::sync::Arc::new(slave_client));
+          tokio::join!(future_infer, future_actix);
+      });
+  }
+#+end_src
+
+**** COMMENT Start the actix and grpc server
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[actix_web::main]
   async fn main() -> () {
