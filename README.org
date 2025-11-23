@@ -401,6 +401,7 @@
                        arg_output *out) {
 
     std::cout << "Inside the c++ function" << std::endl;
+    slave[0](in,batch_size,out);
     // static c10::InferenceMode mode;
     // static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
     // auto options =
@@ -427,50 +428,15 @@
 
 *** Actual file
 
-**** COMMENT Debug
-#+begin_src make :tangle ./Makefile
-  CC=g++
-
-  install: build/libmytorch.so model_output.pt2 src/export.rs
-  	cp -vf -- build/libmytorch.so /lib/
-
-  src/main.hpp: src/export.hpp
-  	touch src/main.hpp
-
-  src/all.hpp: src/main.hpp
-  	$(CC) src/main.hpp -o src/all.hpp -E -I/usr/include/torch/csrc/api/include/
-
-  src/main.cpp: src/all.hpp
-  	touch src/main.cpp
-
-  build/main.o: src/main.cpp
-  	mkdir -pv -- ./build
-  	$(CC) src/main.cpp -fPIC -c -o build/main.o -g -Og -march=x86-64-v3 -mtune=native
-
-  build/libmytorch.so: build/main.o
-  	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu -flto
-
-  clean:
-  	rm -rf -- build src/all.hpp target
-
-  model_output.pt2: model_input.pt2 compile.py
-  	./compile.sh
-  	touch ./model_output.pt2 
-
-  src/export.rs: src/export.hpp
-  	bindgen src/export.hpp > src/export.rs
-
-  model_input.pt2: main.py
-  	./main.sh
-  	touch ./model_input.pt2
-#+end_src
-
 **** Optimized
 #+begin_src make :tangle ./Makefile
   CC=clang++
 
-  install: build/libmytorch.so model_output.pt2 src/export.rs
+  install: all
   	cp -vf -- build/libmytorch.so /lib/
+
+  all: build/libmytorch.so model_output.pt2 src/export.rs
+  	echo Done building all
 
   src/main.hpp: src/export.hpp
   	touch src/main.hpp
@@ -1110,7 +1076,7 @@
 ** Run server
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-  make -j
+  make -j install
   export RUSTFLAGS="-C target-cpu=native"
   cargo run --bin infer-server --release
 #+end_src
@@ -1118,7 +1084,7 @@
 ** Run Client
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./infer.sh
   cd "$(dirname -- "${0}")"
-  make -j
+  make -j all
   export RUSTFLAGS="-C target-cpu=native"
   cargo run --bin infer-client --release
 #+end_src

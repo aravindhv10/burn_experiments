@@ -1,7 +1,10 @@
 CC=clang++
 
-install: build/libmytorch.so model_output.pt2 src/export.rs
+install: all
 	cp -vf -- build/libmytorch.so /lib/
+
+all: build/libmytorch.so model_output.pt2 src/export.rs
+	echo Done building all
 
 src/main.hpp: src/export.hpp
 	touch src/main.hpp
