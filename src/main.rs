@@ -60,13 +60,45 @@ impl infer::infer_server::Infer for MyInferer {
     }
 }
 
-#[tokio::main]
+#[actix_web::main]
 async fn main() -> () {
     let (mut slave_server, slave_client) = crate::model::get_inference_tuple();
-    let ip_v4 = std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0));
-    let addr = std::net::SocketAddr::new(ip_v4, 8001);
-    let inferer_service = MyInferer{slave_client: std::sync::Arc::new(slave_client)};
-    let future_grpc = tonic::transport::Server::builder().add_service(infer::infer_server::InferServer::new(inferer_service)).serve(addr);
+    let slave_client_1 = std::sync::Arc::new(slave_client);
+    let slave_client_2 = std::sync::Arc::clone(&slave_client_1);
     let future_infer = slave_server.infer_loop();
-    let (first, second) = tokio::join!(future_infer, future_grpc);
+    match actix_web::HttpServer::new(move || {
+        actix_web::App::new()
+            .app_data(actix_web::web::Data::new(std::sync::Arc::clone(&slave_client_1)))
+            .route("/infer", actix_web::web::post().to(infer_handler))
+    })
+    .bind(("0.0.0.0", 8000))
+    {
+        Ok(ret) => {
+            let future_rest_server = ret.run();
+            let ip_v4 = std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0));
+            let addr = std::net::SocketAddr::new(ip_v4, 8001);
+            let inferer_service = MyInferer{slave_client: slave_client_2};
+            let future_grpc = tonic::transport::Server::builder().add_service(infer::infer_server::InferServer::new(inferer_service)).serve(addr);
+            let (first, second, third) = tokio::join!(future_infer, future_rest_server, future_grpc);
+            match second {
+                Ok(_) => {
+                    println!("REST server executed and stopped successfully");
+                }
+                Err(e) => {
+                    println!("Encountered error in starting the server due to {}.", e);
+                }
+            }
+            match third {
+                Ok(_) => {
+                    println!("GRPC server executed and stopped successfully");
+                }
+                Err(e) => {
+                    println!("Encountered error in starting the server due to {}.", e);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to bind to port");
+        }
+    }
 }

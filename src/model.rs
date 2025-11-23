@@ -40,15 +40,14 @@ impl Default for arg_output {
     }
 }
 
-pub fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
+async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
 
     println!("Inside run_inference");
 
     let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
 
-    println!("Calling the c++ wrapper");
-
     unsafe {
+        println!("Calling the c++ wrapper");
         mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
     }
 
@@ -122,7 +121,7 @@ impl model_server {
                     input[B as usize].val[Y as usize][X as usize][2] = b as f32;
                 }
             }
-            let outputs = run_inference(input) ;
+            let outputs = run_inference(input).await ;
 
             for (out, req) in outputs.into_iter().zip(batch.into_iter()) {
                 let _ = req.resp_tx.send(Ok(out));
@@ -141,7 +140,9 @@ impl model_client {
         &self,
         img: image::RgbaImage,
     ) -> Result<arg_output, String> {
+
         let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
+
         match self.tx.send(InferRequest { img, resp_tx}).await {
             Ok(_) => match resp_rx.await {
                 Ok(Ok(pred)) => {
@@ -159,7 +160,9 @@ impl model_client {
             }
         }
     }
+
     pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_output, String> {
+
         match self.preprocess.decode_and_preprocess(data) {
             Ok(img) => {
                 return self.do_infer(img).await;

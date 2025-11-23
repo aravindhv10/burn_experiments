@@ -361,31 +361,21 @@
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   #include "./all.hpp"
 
-  static c10::InferenceMode mode;
-  static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
-
   extern "C" {
 
   void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {
-    out[0].val[0] = 1.0;
 
-    // static c10::InferenceMode mode;
-    // static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
+    std::cout << "Inside the c++ function" << std::endl;
+    static c10::InferenceMode mode;
+    static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
+    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
 
-    // std::cout << "Came inside mylibtorchinfer" << std::endl ;
-
-    // auto options =
-    //     torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
-
-    // torch::Tensor input_tensor = torch::from_blob(
-    //     static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
-
-    // std::vector<torch::Tensor> inputs = {input_tensor};
-
-    // std::vector<torch::Tensor> outputs = loader.run(inputs);
-    // torch::Tensor out_tensor = outputs[0].contiguous().cpu();
-    // std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
-    // std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
+    torch::Tensor input_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
+    std::vector<torch::Tensor> inputs = {input_tensor};
+    std::vector<torch::Tensor> outputs = loader.run(inputs);
+    torch::Tensor out_tensor = outputs[0].contiguous().cpu();
+    std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
+    std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
   }
   }
 #+end_src
@@ -398,6 +388,46 @@
 #+end_src
 
 *** Actual file
+
+**** COMMENT Debug
+#+begin_src make :tangle ./Makefile
+  CC=g++
+
+  install: build/libmytorch.so model_output.pt2 src/export.rs
+  	cp -vf -- build/libmytorch.so /lib/
+
+  src/main.hpp: src/export.hpp
+  	touch src/main.hpp
+
+  src/all.hpp: src/main.hpp
+  	$(CC) src/main.hpp -o src/all.hpp -E -I/usr/include/torch/csrc/api/include/
+
+  src/main.cpp: src/all.hpp
+  	touch src/main.cpp
+
+  build/main.o: src/main.cpp
+  	mkdir -pv -- ./build
+  	$(CC) src/main.cpp -fPIC -c -o build/main.o -g -Og -march=x86-64-v3 -mtune=native
+
+  build/libmytorch.so: build/main.o
+  	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu -flto
+
+  clean:
+  	rm -rf -- build src/all.hpp target
+
+  model_output.pt2: model_input.pt2 compile.py
+  	./compile.sh
+  	touch ./model_output.pt2 
+
+  src/export.rs: src/export.hpp
+  	bindgen src/export.hpp > src/export.rs
+
+  model_input.pt2: main.py
+  	./main.sh
+  	touch ./model_input.pt2
+#+end_src
+
+**** Optimized
 #+begin_src make :tangle ./Makefile
   CC=clang++
 
@@ -607,7 +637,7 @@
 
   #[tokio::main]
   async fn main() -> Result<(), Box<dyn std::error::Error>> {
-      let data = fs::read("./image.png").expect("Failed reading image file");
+      let data = fs::read("./image.jpg").expect("Failed reading image file");
       let img = infer::Image { image_data: data };
       let mut client = infer::infer_client::InferClient::connect("http://127.0.0.1:8001").await?;
       let res = client.do_infer(img).await?;
@@ -729,15 +759,14 @@
 
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  pub fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
+  async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
 
       println!("Inside run_inference");
 
       let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
 
-      println!("Calling the c++ wrapper");
-
       unsafe {
+          println!("Calling the c++ wrapper");
           mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
       }
 
@@ -833,7 +862,7 @@
                       input[B as usize].val[Y as usize][X as usize][2] = b as f32;
                   }
               }
-              let outputs = run_inference(input) ;
+              let outputs = run_inference(input).await ;
 
               for (out, req) in outputs.into_iter().zip(batch.into_iter()) {
                   let _ = req.resp_tx.send(Ok(out));
@@ -860,7 +889,9 @@
           &self,
           img: image::RgbaImage,
       ) -> Result<arg_output, String> {
+
           let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
+
           match self.tx.send(InferRequest { img, resp_tx}).await {
               Ok(_) => match resp_rx.await {
                   Ok(Ok(pred)) => {
@@ -878,7 +909,9 @@
               }
           }
       }
+
       pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_output, String> {
+
           match self.preprocess.decode_and_preprocess(data) {
               Ok(img) => {
                   return self.do_infer(img).await;
@@ -973,7 +1006,7 @@
   }
 #+end_src
 
-**** Only start the grpc server
+**** COMMENT Only start the grpc server
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[tokio::main]
   async fn main() -> () {
@@ -987,7 +1020,7 @@
   }
 #+end_src
 
-**** COMMENT Start the actix and grpc server
+**** Start the actix and grpc server
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[actix_web::main]
   async fn main() -> () {
@@ -1046,7 +1079,7 @@
   cd "$(dirname -- "${0}")"
   make -j
   export RUSTFLAGS="-C target-cpu=native"
-  cargo run --bin infer-server --release 
+  cargo run --bin infer-server --release
 #+end_src
 
 ** Run Client
@@ -1054,7 +1087,7 @@
   cd "$(dirname -- "${0}")"
   make -j
   export RUSTFLAGS="-C target-cpu=native"
-  cargo run --bin infer-client --release 
+  cargo run --bin infer-client --release
 #+end_src
 
 * COMMENT Work space
