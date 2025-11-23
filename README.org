@@ -7,31 +7,6 @@
   GITADD 'README.org'
 #+end_src
 
-* Host scripts
-
-** Add file to git
-#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-  GITADD 'host.image_names.sh'
-#+end_src
-
-** Important envs
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes  :tangle ./host.image_names.sh
-  IMAGE_NAME='debtestrustzshhelixpytorch2'
-#+end_src
-
-** Important functions
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./host.image_names.sh
-  RUN_CONTAINER () {
-      mkdir -pv -- './cache'
-      CMD='sudo -A docker'
-      which podman && CMD='podman'
-      ${CMD} run -it --rm \
-          -v "$(realpath .):/data" \
-          -v "$(realpath .)/cache:/root/.cache" \
-          "${IMAGE_NAME}" zsh ;
-  }
-#+end_src
-
 * Scripts to run image
 
 ** Add file to git
@@ -42,8 +17,18 @@
 ** Actual script
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
   cd "$(dirname -- "${0}")"
-  . './host.image_names.sh'
-  RUN_CONTAINER
+
+  IMAGE_NAME='libtorchapi'
+
+  RUN_CONTAINER () {
+      mkdir -pv -- './cache'
+      CMD='sudo -A docker'
+      which podman && CMD='podman'
+      ${CMD} run -it --rm \
+          -v "$(realpath .):/data" \
+          -v "$(realpath .)/cache:/root/.cache" \
+          "${IMAGE_NAME}" zsh ;
+  }
 #+end_src
 
 * Python file to produce the model file and compile it
