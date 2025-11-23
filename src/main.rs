@@ -77,14 +77,28 @@ async fn main_actix(slave_client_1: std::sync::Arc<crate::model::model_client>) 
     }
 }
 
-
+async fn main_tonic(slave_client_2: std::sync::Arc<crate::model::model_client>) {
+    let ip_v4 = std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0));
+    let addr = std::net::SocketAddr::new(ip_v4, 8001);
+    let inferer_service = MyInferer{slave_client: slave_client_2};
+    tonic::transport::Server::builder().add_service(infer::infer_server::InferServer::new(inferer_service)).serve(addr).await;
+}
 
 fn main() {
     let (mut slave_server, slave_client) = crate::model::get_inference_tuple();
-    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .thread_stack_size(16 * 1024 * 1024) 
+        .enable_all()
+        .build()
+        .unwrap();
+
     rt.block_on(async {
+        let slave_client_1 = std::sync::Arc::new(slave_client);
+        let slave_client_2 = std::sync::Arc::clone(&slave_client_1);
         let future_infer = slave_server.infer_loop();
-        let future_actix = main_actix(std::sync::Arc::new(slave_client));
-        tokio::join!(future_infer, future_actix);
+        let future_actix = main_actix(slave_client_1);
+        let future_tonic = main_tonic(slave_client_2);
+        tokio::join!(future_infer, future_actix, future_tonic);
     });
 }
