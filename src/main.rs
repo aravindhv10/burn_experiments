@@ -61,20 +61,20 @@ impl infer::infer_server::Infer for MyInferer {
 }
 
 async fn main_actix(slave_client_1: std::sync::Arc<crate::model::model_client>) -> () {
-      match actix_web::HttpServer::new(move || {
+    match actix_web::HttpServer::new(
+        move || {
           actix_web::App::new()
               .app_data(actix_web::web::Data::new(std::sync::Arc::clone(&slave_client_1)))
               .route("/infer", actix_web::web::post().to(infer_handler))
-      })
-      .bind(("0.0.0.0", 8000))
-      {
-          Ok(ret) => {
-              let future_rest_server = ret.run().await;
-          }
-          Err(e) => {
-              eprintln!("Failed to bind to port");
-          }
-      }
+        }
+    ).bind(("0.0.0.0", 8000)) {
+        Ok(ret) => {
+            ret.run().await;
+        }
+        Err(e) => {
+            eprintln!("Failed to bind to port");
+        }
+    }
 }
 
 
