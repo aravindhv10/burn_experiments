@@ -380,13 +380,11 @@
     static c10::InferenceMode mode;
     static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
 
-    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+    auto options =
+        torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
 
     torch::Tensor input_tensor = torch::from_blob(
-        static_cast<void*>(in), 
-        {batch_size, SIZE_Y, SIZE_X, SIZE_C}, 
-        options
-    );
+        static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options);
 
     std::vector<torch::Tensor> inputs = {input_tensor};
 
@@ -407,12 +405,15 @@
     // }
 
     std::vector<torch::Tensor> outputs = loader.run(inputs);
+    torch::Tensor out_tensor = outputs[0].contiguous().cpu();
+    std::size_t const bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
+    std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
 
-    for (int B = 0; B < batch_size; ++B) {
-      for (int O = 0; O < SIZE_O; ++O) {
-        out[B].val[O] = outputs[0][B][O].item<outtype>();
-      }
-    }
+    // for (int B = 0; B < batch_size; ++B) {
+    //   for (int O = 0; O < SIZE_O; ++O) {
+    //     out[B].val[O] = outputs[0][B][O].item<outtype>();
+    //   }
+    // }
   }
   }
 #+end_src
@@ -431,10 +432,16 @@
   install: build/libmytorch.so model_output.pt2 src/export.rs
   	cp -vf -- build/libmytorch.so /lib/
 
-  src/all.hpp: src/main.hpp src/export.hpp
+  src/main.hpp: src/export.hpp
+  	touch src/main.hpp
+
+  src/all.hpp: src/main.hpp
   	$(CC) src/main.hpp -o src/all.hpp -E -I/usr/include/torch/csrc/api/include/
 
-  build/main.o: src/main.cpp src/all.hpp
+  src/main.cpp: src/all.hpp
+  	touch src/main.cpp
+
+  build/main.o: src/main.cpp
   	mkdir -pv -- ./build
   	$(CC) src/main.cpp -fPIC -c -o build/main.o -O3 -march=x86-64-v3 -mtune=native
 
