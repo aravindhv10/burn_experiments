@@ -5,17 +5,17 @@ use tokio;
 
 use futures_util::TryStreamExt;
 
-use std::net::IpAddr;
-use std::net::Ipv4Addr;
-use std::net::SocketAddr;
-use std::sync::Arc;
+// use std::net::IpAddr;
+// use std::net::Ipv4Addr;
+// use std::net::SocketAddr;
+// use std::sync::Arc;
 
-use actix_multipart::Multipart;
-use actix_web::App;
-use actix_web::Error;
-use actix_web::HttpResponse;
-use actix_web::HttpServer;
-use actix_web::web;
+// use actix_multipart::Multipart;
+// use actix_web::App;
+// use actix_web::Error;
+// use actix_web::HttpResponse;
+// use actix_web::HttpServer;
+// use actix_web::web;
 
 async fn infer_handler(
     mut payload: actix_multipart::Multipart,
@@ -43,10 +43,6 @@ async fn infer_handler(
         },
     }
 }
-
-// use tonic::Request;
-// use tonic::Response;
-// use tonic::Status;
 
 pub mod infer {
     tonic::include_proto!("infer"); // The string specified here must match the proto package name
