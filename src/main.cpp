@@ -32,7 +32,7 @@ public:
   ~infer_slave() {}
 };
 
-infer_slave *slave = new infer_slave();
+infer_slave slave;
 
 extern "C" {
 
@@ -40,7 +40,7 @@ void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
                      arg_output *out) {
 
   std::cout << "Inside the c++ function" << std::endl;
-  slave[0](in,batch_size,out);
+  slave(in,batch_size,out);
   // static c10::InferenceMode mode;
   // static torch::inductor::AOTIModelPackageLoader loader("model_output.pt2");
   // auto options =
