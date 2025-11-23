@@ -40,6 +40,7 @@ pub struct MyInferer {
 
 #[tonic::async_trait]
 impl infer::infer_server::Infer for MyInferer {
+
     async fn do_infer(&self, request: tonic::Request<infer::Image>) -> Result<tonic::Response<infer::Prediction>, tonic::Status> {
         println!("Received gRPC request");
         let image_data = request.into_inner().image_data;
@@ -88,7 +89,7 @@ fn main() {
     let (mut slave_server, slave_client) = crate::model::get_inference_tuple();
 
     let rt = tokio::runtime::Builder::new_multi_thread()
-        .thread_stack_size(16 * 1024 * 1024) 
+        .thread_stack_size(1 << 24) 
         .enable_all()
         .build()
         .unwrap();
