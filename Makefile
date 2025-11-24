@@ -1,7 +1,7 @@
 CC=clang++
 
 install: all
-	cp -vf -- build/libmytorch.so /lib/
+	install -C build/libmytorch.so /lib/libmytorch.so
 
 all: build/libmytorch.so model_output.pt2 src/export.rs
 	echo Done building all
