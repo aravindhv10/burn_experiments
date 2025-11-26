@@ -1,3 +1,4 @@
+// #[link(name="mytorch")]
 include!("export.rs");
 
 impl arg_input {
