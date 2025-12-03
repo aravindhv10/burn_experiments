@@ -441,7 +441,7 @@
   	$(CC) src/main.cpp -fPIC -c -o build/main.o -O3 -march=x86-64-v3 -mtune=native
 
   build/libmytorch.so: build/main.o
-  	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu -flto
+  	$(CC) build/main.o -o build/libmytorch.so -fPIC -shared -ltorch -ltorch_cpu -ltorch_hip -flto
 
   clean:
   	rm -rf -- build src/all.hpp target
