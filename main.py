@@ -51,6 +51,8 @@ def produce_model(path_file_out):
             INPUT_SHAPE,
             dtype=torch.float32,
         )
+        model.to("cuda")
+        x = x.to("cuda")
         dynamic_shapes = {
             "x": (
                 Dim.DYNAMIC,
