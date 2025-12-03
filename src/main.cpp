@@ -1,4 +1,4 @@
-#include "./main.hpp"
+#include "./all.hpp"
 
 class infer_slave {
   c10::InferenceMode mode;

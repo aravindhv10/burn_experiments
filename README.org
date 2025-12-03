@@ -362,7 +362,7 @@
 
 *** Actual file
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
-  #include "./main.hpp"
+  #include "./all.hpp"
 
   class infer_slave {
     c10::InferenceMode mode;
