@@ -60,7 +60,7 @@ impl infer::infer_server::Infer for MyInferer {
 }
 
 async fn main_actix(slave_client_1: std::sync::Arc<crate::model::model_client>) -> () {
-    let port: i32 = 8000;
+    let port: u16 = 8000;
     match actix_web::HttpServer::new(
         move || {
           actix_web::App::new()
