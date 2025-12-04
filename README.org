@@ -429,15 +429,15 @@
   find_package(Torch REQUIRED)
 
   add_executable(aoti_example src/test.cpp)
-
   add_library(mytorch SHARED src/main.cpp)
-  set_target_properties(mytorch PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 
   target_link_libraries(aoti_example "${TORCH_LIBRARIES}")
   target_link_libraries(mytorch "${TORCH_LIBRARIES}")
 
   set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
-  # set_property(TARGET mytorch PROPERTY CXX_STANDARD 17)
+  set_target_properties(mytorch PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
+
+  install(TARGETS mytorch LIBRARY DESTINATION lib)
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
   set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
