@@ -40,21 +40,21 @@ import torch
 
 
 def produce_model(path_file_out):
-    with torch.no_grad():
-        model = model_wrapper()
-        model = torch.compile(
-            model=model,
-            fullgraph=True,
-            dynamic=True,
-            backend="inductor",
-            mode="max-autotune",
-        )
+    model = model_wrapper()
+    model.eval()
+    with torch.inference_mode():
+        inductor_configs = {}
+        if torch.cuda.is_available():
+            device = "cuda"
+            inductor_configs["max_autotune"] = True
+        else:
+            device = "cpu"
+        model = model.to(device=device)
         x = torch.rand(
             INPUT_SHAPE,
             dtype=torch.float32,
+            device=device,
         )
-        model.to("cuda")
-        x = x.to("cuda")
         dynamic_shapes = {
             "x": (
                 Dim.DYNAMIC,
@@ -63,21 +63,18 @@ def produce_model(path_file_out):
                 Dim.STATIC,
             ),
         }
-        exported_module = torch.export.export(
-            model._orig_mod,
+        exported_program = torch.export.export(
+            # model._orig_mod,
+            model,
             (x,),
             dynamic_shapes=dynamic_shapes,
             strict=True,
         )
-        exported_module = torch.export.load(f=path_file_in)
-        output_path = torch._inductor.aoti_compile_and_package(
-            exported_module,
+        path = torch._inductor.aoti_compile_and_package(
+            exported_program,
             package_path=path_file_out,
+            inductor_configs=inductor_configs,
         )
-        # torch.export.save(
-        #     ep=exported_module,
-        #     f=path_file_out,
-        # )
 
 
 class model_wrapper(torch.nn.Module):
