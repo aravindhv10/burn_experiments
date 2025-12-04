@@ -80,8 +80,10 @@ async fn main_actix(slave_client_1: std::sync::Arc<crate::model::model_client>) 
 
 async fn main_tonic(slave_client_2: std::sync::Arc<crate::model::model_client>) {
     let ip_v4 = std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0));
-    let addr = std::net::SocketAddr::new(ip_v4, 8001);
+    let port: u16 = 8001;
+    let addr = std::net::SocketAddr::new(ip_v4, port);
     let inferer_service = MyInferer{slave_client: slave_client_2};
+    println!("Starting tonic grpc server at port {}",port);
     tonic::transport::Server::builder().add_service(infer::infer_server::InferServer::new(inferer_service)).serve(addr).await;
 }
 
