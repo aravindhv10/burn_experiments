@@ -3,6 +3,8 @@ project(aoti_example)
 
 find_package(Torch REQUIRED)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
+
 add_executable(aoti_example src/test.cpp model.pt2)
 
 add_custom_command(
