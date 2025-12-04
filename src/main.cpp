@@ -14,7 +14,7 @@ public:
   inline void operator()(arg_input *in, unsigned int const batch_size,
                          arg_output *out) {
 
-    torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, torch::kCUDA);
+    torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, torch::kCPU);
 
     inputs[0] = cpu_tensor.to(options);
     outputs = loader.run(inputs);
