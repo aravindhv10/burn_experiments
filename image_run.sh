@@ -1,7 +1,7 @@
 #!/bin/sh
 cd "$(dirname -- "${0}")"
 
-IMAGE_NAME='libtorchapi'
+IMAGE_NAME='debtestrustzshhelixpytorch2'
 
 RUN_CONTAINER () {
     mkdir -pv -- './cache'

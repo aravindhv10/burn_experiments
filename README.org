@@ -18,7 +18,7 @@
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
   cd "$(dirname -- "${0}")"
 
-  IMAGE_NAME='libtorchapi'
+  IMAGE_NAME='debtestrustzshhelixpytorch2'
 
   RUN_CONTAINER () {
       mkdir -pv -- './cache'
