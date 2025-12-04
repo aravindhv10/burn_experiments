@@ -431,13 +431,13 @@
   add_executable(aoti_example src/test.cpp)
 
   add_library(mytorch SHARED src/main.cpp)
-  set_target_properties(mytorch PROPERTIES VERSION ${PROJECT_VERSION})
+  set_target_properties(mytorch PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
 
   target_link_libraries(aoti_example "${TORCH_LIBRARIES}")
   target_link_libraries(mytorch "${TORCH_LIBRARIES}")
 
   set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
-  set_property(TARGET mytorch PROPERTY CXX_STANDARD 17)
+  # set_property(TARGET mytorch PROPERTY CXX_STANDARD 17)
 
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
   set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
@@ -693,16 +693,10 @@
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
-
-      println!("Inside run_inference");
-
       let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
-
       unsafe {
-          println!("Calling the c++ wrapper");
           mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
       }
-
       output
   }
 #+end_src
@@ -920,9 +914,7 @@
   impl infer::infer_server::Infer for MyInferer {
 
       async fn do_infer(&self, request: tonic::Request<infer::Image>) -> Result<tonic::Response<infer::Prediction>, tonic::Status> {
-          println!("Received gRPC request");
           let image_data = request.into_inner().image_data;
-          println!("Calling the inference function");
           match self.slave_client.do_infer_data(image_data).await {
               Ok(pred) => {
                   let reply = infer::Prediction {

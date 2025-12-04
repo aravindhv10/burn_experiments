@@ -42,9 +42,7 @@ pub struct MyInferer {
 impl infer::infer_server::Infer for MyInferer {
 
     async fn do_infer(&self, request: tonic::Request<infer::Image>) -> Result<tonic::Response<infer::Prediction>, tonic::Status> {
-        println!("Received gRPC request");
         let image_data = request.into_inner().image_data;
-        println!("Calling the inference function");
         match self.slave_client.do_infer_data(image_data).await {
             Ok(pred) => {
                 let reply = infer::Prediction {

@@ -42,16 +42,10 @@ impl Default for arg_output {
 }
 
 async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
-
-    println!("Inside run_inference");
-
     let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
-
     unsafe {
-        println!("Calling the c++ wrapper");
         mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
     }
-
     output
 }
 
