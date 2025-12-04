@@ -1,4 +1,4 @@
-#include "./all.hpp"
+#include "./main.hpp"
 
 class infer_slave {
   c10::InferenceMode mode;
@@ -23,7 +23,7 @@ public:
   }
 
   infer_slave()
-      : loader("model_output.pt2"),
+      : loader("model.pt2"),
         options(
             torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA)) {
     inputs.resize(1);
