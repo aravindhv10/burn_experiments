@@ -49,6 +49,7 @@ def produce_model(path_file_out):
             inductor_configs["max_autotune"] = True
         else:
             device = "cpu"
+        print("device = ", device)
         model = model.to(device=device)
         x = torch.rand(
             INPUT_SHAPE,
@@ -75,6 +76,20 @@ def produce_model(path_file_out):
             package_path=path_file_out,
             inductor_configs=inductor_configs,
         )
+
+
+def test_model(path_file_out):
+    device = "cuda"
+    model = torch._inductor.aoti_load_package(model_path)
+    x = torch.rand(
+        INPUT_SHAPE,
+        dtype=torch.float32,
+        device=device,
+    )
+    with torch.inference_mode():
+        output = compiled_model(x)
+        print(output)
+    return output
 
 
 class model_wrapper(torch.nn.Module):

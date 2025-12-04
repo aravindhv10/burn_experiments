@@ -50,7 +50,7 @@
   H="$(sha512sum ./main.py | cut -d ' ' -f1)"
   test -e "${H}.pt2" && exit '0'
   ./main.py "${H}.pt2"
-  ln -vfs -- "${H}.pt2" "./model_input.pt2"
+  ln -vfs -- "${H}.pt2" "./model.pt2"
   exit '0'
 #+end_src
 
@@ -218,6 +218,8 @@
           else:
               device = "cpu"
 
+          print("device = ", device)
+
           model = model.to(device=device)
           x = torch.rand(
               INPUT_SHAPE,
@@ -247,6 +249,23 @@
               package_path=path_file_out,
               inductor_configs=inductor_configs,
           )
+#+end_src
+
+**** function to test if it works
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
+  def test_model(path_file_out):
+      device = "cuda"
+      model = torch._inductor.aoti_load_package(model_path)
+      x = torch.rand(
+          INPUT_SHAPE,
+          dtype=torch.float32,
+          device=device,
+      )
+      with torch.inference_mode():
+          output = compiled_model(x)
+
+          print(output)
+      return output
 #+end_src
 
 **** execute
