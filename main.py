@@ -33,6 +33,8 @@ INPUT_SHAPE = (
 )
 from torch.export.dynamic_shapes import Dim
 import einops
+import os
+import sys
 import timm
 import torch
 
@@ -67,10 +69,15 @@ def produce_model(path_file_out):
             dynamic_shapes=dynamic_shapes,
             strict=True,
         )
-        torch.export.save(
-            ep=exported_module,
-            f=path_file_out,
+        exported_module = torch.export.load(f=path_file_in)
+        output_path = torch._inductor.aoti_compile_and_package(
+            exported_module,
+            package_path=path_file_out,
         )
+        # torch.export.save(
+        #     ep=exported_module,
+        #     f=path_file_out,
+        # )
 
 
 class model_wrapper(torch.nn.Module):
