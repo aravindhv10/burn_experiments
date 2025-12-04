@@ -17,3 +17,4 @@ install(TARGETS mytorch LIBRARY DESTINATION lib)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
+set(CMAKE_INSTALL_PREFIX "/usr")
