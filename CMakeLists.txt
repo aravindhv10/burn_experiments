@@ -3,7 +3,6 @@ project(aoti_example)
 
 find_package(Torch REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
 
 add_executable(aoti_example src/test.cpp model.pt2)
 
@@ -15,3 +14,5 @@ add_custom_command(
 
 target_link_libraries(aoti_example "${TORCH_LIBRARIES}")
 set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
