@@ -253,16 +253,21 @@
 
 **** function to test if it works
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
-  def test_model(path_file_out):
+  def test_model(path_file_in):
       device = "cuda"
-      model = torch._inductor.aoti_load_package(model_path)
+      model = torch._inductor.aoti_load_package(path_file_in)
       x = torch.rand(
-          INPUT_SHAPE,
+          (
+              SIZE_B * 2,
+              SIZE_Y,
+              SIZE_X,
+              SIZE_C,
+          ),
           dtype=torch.float32,
           device=device,
       )
       with torch.inference_mode():
-          output = compiled_model(x)
+          output = model(x)
 
           print(output)
       return output
@@ -271,6 +276,7 @@
 **** execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
   produce_model(path_file_out=sys.argv[1])
+  test_model(path_file_in=sys.argv[1])
 #+end_src
 
 * C++ program

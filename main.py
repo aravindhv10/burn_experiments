@@ -78,16 +78,21 @@ def produce_model(path_file_out):
         )
 
 
-def test_model(path_file_out):
+def test_model(path_file_in):
     device = "cuda"
-    model = torch._inductor.aoti_load_package(model_path)
+    model = torch._inductor.aoti_load_package(path_file_in)
     x = torch.rand(
-        INPUT_SHAPE,
+        (
+            SIZE_B * 2,
+            SIZE_Y,
+            SIZE_X,
+            SIZE_C,
+        ),
         dtype=torch.float32,
         device=device,
     )
     with torch.inference_mode():
-        output = compiled_model(x)
+        output = model(x)
         print(output)
     return output
 
@@ -177,3 +182,4 @@ class model_wrapper(torch.nn.Module):
 
 
 produce_model(path_file_out=sys.argv[1])
+test_model(path_file_in=sys.argv[1])
