@@ -20,6 +20,7 @@ cargo build --bin infer-client --release
 cp -vf -- "${CARGO_TARGET_DIR}/release/infer-server" "${BLD}/"
 mkdir -pv -- '/usr/bin/'
 install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server'
+install --compare  "${CARGO_TARGET_DIR}/release/infer-client" '/usr/bin/infer-client'
 
 cd "${SRC}"
 H="$(sha512sum ./main.py | cut -d ' ' -f1)"
