@@ -11,6 +11,8 @@ make install
 
 cd "${SRC}"
 export RUSTFLAGS="-C target-cpu=native"
+export CARGO_TARGET_DIR="${BLD}/cargo"
+mkdir -pv -- "${CARGO_TARGET_DIR}"
 bindgen './src/export.hpp' > './src/export.rs'
 cargo build --bin infer-server --release
 cp -vf -- 'target/release/infer-server' "${BLD}/"
