@@ -24,7 +24,7 @@ public:
   }
 
   infer_slave()
-      : loader("model.pt2"),
+      : loader("/model.pt2"),
         options(
             torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA)) {
     inputs.resize(1);

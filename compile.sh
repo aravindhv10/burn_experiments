@@ -3,6 +3,7 @@ cd "$(dirname -- "${0}")"
 SRC="$(realpath .)"
 BLD="${SRC}/../build"
 mkdir -pv -- "${BLD}"
+BLD="$('realpath' "${BLD}")"
 
 cd "${BLD}"
 cmake "${SRC}"
@@ -16,11 +17,13 @@ mkdir -pv -- "${CARGO_TARGET_DIR}"
 bindgen './src/export.hpp' > './src/export.rs'
 cargo build --bin infer-server --release
 cp -vf -- "${CARGO_TARGET_DIR}/release/infer-server" "${BLD}/"
+mkdir -pv -- '/usr/bin/'
+install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server'
 
 cd "${SRC}"
 H="$(sha512sum ./main.py | cut -d ' ' -f1)"
 mkdir -pv -- "${BLD}/${H}"
 test -e "${BLD}/${H}/model.pt2" || ./main.py "${BLD}/${H}/model.pt2"
-ln -vfs -- "${BLD}/${H}/model.pt2" "${BLD}/model.pt2"
+ln -vfs -- "${BLD}/${H}/model.pt2" '/model.pt2'
 
 exit '0'
