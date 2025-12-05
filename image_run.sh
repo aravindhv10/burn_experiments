@@ -3,7 +3,7 @@ cd "$(dirname -- "${0}")"
 
 mkdir -pv -- "${HOME}/BUILD"
 
-IMAGE_NAME='debtestrustzshhelixpytorch2'
+IMAGE_NAME='6_pytorch'
 
 RUN_CONTAINER () {
     CMD='sudo -A docker'
