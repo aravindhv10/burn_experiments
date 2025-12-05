@@ -16,6 +16,7 @@ export CARGO_TARGET_DIR="${BLD}/cargo"
 mkdir -pv -- "${CARGO_TARGET_DIR}"
 bindgen './src/export.hpp' > './src/export.rs'
 cargo build --bin infer-server --release
+cargo build --bin infer-client --release
 cp -vf -- "${CARGO_TARGET_DIR}/release/infer-server" "${BLD}/"
 mkdir -pv -- '/usr/bin/'
 install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server'
