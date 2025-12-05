@@ -11,7 +11,8 @@ RUN_CONTAINER () {
         '--device' '/dev/kfd' \
         '--device' '/dev/dri' \
         '--security-opt' 'seccomp=unconfined' \
-        -v "$(realpath .):/data" \
+        -v "$(realpath .):/data/source" \
+        -v "CACHE:/data/build" \
         "${IMAGE_NAME}" zsh \
     ;
 }
