@@ -18,6 +18,7 @@ RUN_CONTAINER () {
         -v "${HOME}/BUILD:/data/build" \
         -v "CACHE:/usr/local/cargo/registry" \
         -v "CACHE:/root/.cache" \
+        -e 'ROCR_VISIBLE_DEVICES=0' \
         "${IMAGE_NAME}" zsh \
     ;
 }
