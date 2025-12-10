@@ -59,11 +59,9 @@ inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
 
   cv::Mat resized_img;
   if ((height > IMAGE_RESOLUTION) && (width > IMAGE_RESOLUTION)) {
-    cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height),
-               0, 0, cv::INTER_AREA);
+    cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height), 0, 0, cv::INTER_AREA);
   } else {
-    cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height),
-               0, 0, cv::INTER_LANCZOS4);
+    cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height), 0, 0, cv::INTER_LANCZOS4);
   }
 
   // Define the Region of Interest (ROI) for cropping
@@ -78,10 +76,5 @@ inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
 }
 
 extern "C" {
-
-void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
-                     arg_output *out) {
-
-  slave(in,batch_size,out);
-}
+  void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {slave(in,batch_size,out);}
 }
