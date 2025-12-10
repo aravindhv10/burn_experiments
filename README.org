@@ -317,11 +317,13 @@
 *** Actual file
 #+begin_src c++ :mkdirp yes :tangle ./src/main.hpp
   #include "./export.hpp"
+  #include <iostream>
   #include <opencv2/core/mat.hpp>
   #include <opencv2/imgcodecs.hpp>
   #include <opencv2/opencv.hpp>
   #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
   #include <torch/torch.h>
+  #include <vector>
 #+end_src
 
 ** Main C++ code
@@ -369,6 +371,48 @@
   };
 
   infer_slave slave;
+
+  inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
+    cv::Mat decoded_img = cv::imdecode(cv::Mat(1, data_size, CV_8UC1, binary_data), cv::IMREAD_COLOR);
+    if (decoded_img.empty()) {return cv::Mat::zeros(SIZE_Y, SIZE_X, CV_8UC1);}
+
+    int const height = decoded_img.rows;
+    int const width = decoded_img.cols;
+    int target_height = IMAGE_RESOLUTION;
+    int target_width = IMAGE_RESOLUTION;
+    int x_start = 0;
+    int y_start = 0;
+    float ar = 1;
+
+    if (height < width) {
+      ar = float(width) / float(height) ;
+      target_width = int(float(IMAGE_RESOLUTION) * ar);
+      x_start = static_cast<unsigned int>(target_width - IMAGE_RESOLUTION) >> 1;
+    } else {
+      ar = float(height) / float(width) ;
+      target_height = int(float(IMAGE_RESOLUTION) * ar);
+      y_start = static_cast<unsigned int>(target_height - IMAGE_RESOLUTION) >> 1;
+    }
+
+    cv::Mat resized_img;
+    if ((height > IMAGE_RESOLUTION) && (width > IMAGE_RESOLUTION)) {
+      cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height),
+                 0, 0, cv::INTER_AREA);
+    } else {
+      cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height),
+                 0, 0, cv::INTER_LANCZOS4);
+    }
+
+    // Define the Region of Interest (ROI) for cropping
+    cv::Rect roi(x_start, y_start, IMAGE_RESOLUTION, IMAGE_RESOLUTION);
+    cv::Mat cropped_img = resized_img(roi);
+
+    // 4. Change channel order from BGR (OpenCV default) to RGB
+    cv::Mat rgb_img;
+    cv::cvtColor(cropped_img, rgb_img, cv::COLOR_BGR2RGB);
+
+    return rgb_img;
+  }
 
   extern "C" {
 
