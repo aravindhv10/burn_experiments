@@ -64,17 +64,42 @@ inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
     cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height), 0, 0, cv::INTER_LANCZOS4);
   }
 
-  // Define the Region of Interest (ROI) for cropping
   cv::Rect roi(x_start, y_start, IMAGE_RESOLUTION, IMAGE_RESOLUTION);
   cv::Mat cropped_img = resized_img(roi);
 
-  // 4. Change channel order from BGR (OpenCV default) to RGB
   cv::Mat rgb_img;
   cv::cvtColor(cropped_img, rgb_img, cv::COLOR_BGR2RGB);
 
   return rgb_img;
 }
 
+inline bool convertMatToStruct(const cv::Mat& src_mat, arg_input& dst_struct) {
+    if (src_mat.rows != SIZE_Y || src_mat.cols != SIZE_X) {return false;}
+
+    if (src_mat.type() != CV_8UC3) {return false;}
+
+    if (src_mat.isContinuous()) {
+        constexpr size_t EXPECTED_SIZE_BYTES = SIZE_Y * SIZE_X * SIZE_C * sizeof(intype);
+        const uint8_t* mat_data_ptr = src_mat.data;
+        uint8_t* struct_data_ptr = reinterpret_cast<uint8_t*>(dst_struct.val);
+        std::memcpy(struct_data_ptr, mat_data_ptr, EXPECTED_SIZE_BYTES);
+    } else {
+        for (int i = 0; i < SIZE_Y; ++i) {
+            constexpr size_t ROW_SIZE_BYTES = SIZE_X * SIZE_C * sizeof(intype);
+            const uint8_t* src_row = src_mat.ptr<uint8_t>(i);
+            uint8_t* dst_row = reinterpret_cast<uint8_t*>(dst_struct.val[i]);
+            std::memcpy(dst_row, src_row, ROW_SIZE_BYTES);
+        }
+    }
+
+    return true;
+}
+
 extern "C" {
   void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {slave(in,batch_size,out);}
+  bool decode_image_data(unsigned char *binary_data, int data_size, arg_input * dst_struct){
+    /*inline*/ cv::Mat ret = process_image_data(/*unsigned char *binary_data =*/ binary_data, /*int data_size =*/ data_size) ;
+    /*inline*/ bool res = convertMatToStruct(/*const cv::Mat& src_mat =*/ ret, /*arg_input& dst_struct =*/ *dst_struct) ;
+    return res;
+  }
 }
