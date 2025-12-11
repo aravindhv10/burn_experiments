@@ -12,9 +12,12 @@
 ** Add file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   GITADD 'image_run.sh'
+  GITADD 'image_run_nvidia.sh'
 #+end_src
 
 ** Actual script
+
+*** For amd gpu
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
   cd "$(dirname -- "${0}")"
 
@@ -36,6 +39,39 @@
           -v "CACHE:/usr/local/cargo/registry" \
           -v "CACHE:/root/.cache" \
           -e 'ROCR_VISIBLE_DEVICES=0' \
+          "${IMAGE_NAME}" zsh \
+      ;
+  }
+
+  RUN_CONTAINER
+#+end_src
+
+*** For nvidia gpu
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run_nvidia.sh
+  cd "$(dirname -- "${0}")"
+
+  mkdir -pv -- "${HOME}/BUILD"
+
+  IMAGE_NAME='6_pytorch'
+
+  RUN_CONTAINER () {
+      CMD='sudo -A docker'
+      which podman && CMD='podman'
+      ${CMD} run \
+          --tty \
+          --interactive \
+          --rm \
+          --gpus 'all,"capabilities=compute,utility,video"' \
+          --ipc host \
+          --ulimit memlock=-1 \
+          --ulimit stack=67108864 \
+          --shm-size 107374182400 \
+          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
+          -v "$(realpath .):/data/source" \
+          -v "${HOME}/BUILD:/data/build" \
+          -v "CACHE:/usr/local/cargo/registry" \
+          -v "CACHE:/root/.cache" \
+          -v "CACHE:/root/.triton" \
           "${IMAGE_NAME}" zsh \
       ;
   }
