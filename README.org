@@ -264,6 +264,7 @@
 **** function to produce the export
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
   def produce_model(path_file_out):
+      dtype = torch.bfloat16
       model = model_wrapper()
       model.eval()
       with torch.inference_mode():
@@ -275,11 +276,12 @@
               device = "cpu"
 
           print("device = ", device)
+          print("dtype = ", dtype)
 
-          model = model.to(device=device, dtype=torch.bfloat16)
+          model = model.to(device=device, dtype=dtype)
           x = torch.rand(
               INPUT_SHAPE,
-              dtype=torch.bfloat16,
+              dtype=dtype,
               device=device,
           )
 
@@ -310,6 +312,7 @@
 **** function to test if it works
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
   def test_model(path_file_in):
+      dtype=torch.bfloat16
       if torch.cuda.is_available():
           device = "cuda"
       else:
@@ -322,7 +325,7 @@
               SIZE_X,
               SIZE_C,
           ),
-          dtype=torch.bfloat16,
+          dtype=dtype,
           device=device,
       )
       with torch.inference_mode():
@@ -335,7 +338,7 @@
 **** execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
   produce_model(path_file_out=sys.argv[1])
-  # test_model(path_file_in=sys.argv[1])
+  test_model(path_file_in=sys.argv[1])
 #+end_src
 
 * C++ program
@@ -408,13 +411,9 @@
 
   inline torch::TensorOptions get_good_device_and_dtype(){
       if (torch::cuda::is_available()) {
-          return torch::TensorOptions()
-              .dtype(torch::kBFloat16)
-              .device(torch::kCUDA);
+          return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
       } else {
-          return torch::TensorOptions()
-              .dtype(torch::kBFloat16)
-              .device(torch::kCPU);
+          return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCPU);
       }
   }
 
@@ -429,11 +428,8 @@
     std::size_t bytes_to_copy;
 
   public:
-    inline void operator()(arg_input *in, unsigned int const batch_size,
-                           arg_output *out) {
-
+    inline void operator()(arg_input *in, unsigned int const batch_size, arg_output *out) {
       torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, torch::kCPU);
-
       inputs[0] = cpu_tensor.to(options);
       outputs = loader.run(inputs);
       out_tensor = outputs[0].contiguous().cpu();
@@ -535,9 +531,14 @@
   int main(){
     arg_input in;
     arg_output out;
-    for(int y = 0 ; y < IMAGE_RESOLUTION; ++y){for(int x=0; x<IMAGE_RESOLUTION; ++x){
-        for(int c=0; c<NUM_CHANNELS; ++c){in.val[y][x][c] = 0;}
-      }}
+
+    for(int y = 0 ; y < IMAGE_RESOLUTION; ++y){
+      for(int x=0; x<IMAGE_RESOLUTION; ++x){
+        for(int c=0; c<NUM_CHANNELS; ++c){
+          in.val[y][x][c] = 0;
+        }
+      }
+    }
 
     mylibtorchinfer(/*arg_input *in =*/ &in, /*unsigned int const batch_size =*/ 1, /*arg_output *out =*/ &out);
     for(int i = 0; i< NUM_CLASSES; ++i){printf("%lf, ",out.val[i]);}

@@ -2,13 +2,9 @@
 
 inline torch::TensorOptions get_good_device_and_dtype(){
     if (torch::cuda::is_available()) {
-        return torch::TensorOptions()
-            .dtype(torch::kBFloat16)
-            .device(torch::kCUDA);
+        return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
     } else {
-        return torch::TensorOptions()
-            .dtype(torch::kBFloat16)
-            .device(torch::kCPU);
+        return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCPU);
     }
 }
 
@@ -23,11 +19,8 @@ class infer_slave {
   std::size_t bytes_to_copy;
 
 public:
-  inline void operator()(arg_input *in, unsigned int const batch_size,
-                         arg_output *out) {
-
+  inline void operator()(arg_input *in, unsigned int const batch_size, arg_output *out) {
     torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, torch::kCPU);
-
     inputs[0] = cpu_tensor.to(options);
     outputs = loader.run(inputs);
     out_tensor = outputs[0].contiguous().cpu();

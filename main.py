@@ -40,6 +40,7 @@ import torch
 
 
 def produce_model(path_file_out):
+    dtype = torch.bfloat16
     model = model_wrapper()
     model.eval()
     with torch.inference_mode():
@@ -50,10 +51,11 @@ def produce_model(path_file_out):
         else:
             device = "cpu"
         print("device = ", device)
-        model = model.to(device=device, dtype=torch.bfloat16)
+        print("dtype = ", dtype)
+        model = model.to(device=device, dtype=dtype)
         x = torch.rand(
             INPUT_SHAPE,
-            dtype=torch.bfloat16,
+            dtype=dtype,
             device=device,
         )
         dynamic_shapes = {
@@ -79,6 +81,7 @@ def produce_model(path_file_out):
 
 
 def test_model(path_file_in):
+    dtype = torch.bfloat16
     if torch.cuda.is_available():
         device = "cuda"
     else:
@@ -91,7 +94,7 @@ def test_model(path_file_in):
             SIZE_X,
             SIZE_C,
         ),
-        dtype=torch.bfloat16,
+        dtype=dtype,
         device=device,
     )
     with torch.inference_mode():
@@ -185,4 +188,4 @@ class model_wrapper(torch.nn.Module):
 
 
 produce_model(path_file_out=sys.argv[1])
-# test_model(path_file_in=sys.argv[1])
+test_model(path_file_in=sys.argv[1])
