@@ -98,7 +98,7 @@ impl prediction_probabilities_reply {
 }
 
 pub struct InferRequest {
-    img: image::RgbaImage,
+    img: Box<arg_input>,
     resp_tx: tokio::sync::oneshot::Sender<Result<arg_output, String>>,
 }
 
@@ -112,30 +112,27 @@ const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200)
 impl model_server {
     pub async fn infer_loop(&mut self) {
         while let Some(first) = self.rx.recv().await {
-            let mut batch = vec![first];
+            let mut images = Vec::with_capacity(MAX_BATCH);
+            let mut reply_channel = Vec::with_capacity(MAX_BATCH);
+
+            images.push(*(first.img));
+            reply_channel.push(first.resp_tx);
+
             let start = tokio::time::Instant::now();
-            while batch.len() < MAX_BATCH && start.elapsed() < BATCH_TIMEOUT {
+            while images.len() < MAX_BATCH && start.elapsed() < BATCH_TIMEOUT {
                 match self.rx.try_recv() {
-                    Ok(req) => batch.push(req),
+                    Ok(req) => {
+                        images.push(*(req.img));
+                        reply_channel.push(req.resp_tx);
+                    } ,
                     Err(_) => break,
                 }
             }
-            let batch_size = batch.len();
 
-            let mut input: Vec<arg_input> = (0..batch_size).map(|_|{arg_input::new()}).collect(); 
-            
-            for (B, req) in batch.iter().enumerate() {
-                for (X, Y, pixel) in req.img.enumerate_pixels() {
-                    let [r, g, b, _] = pixel.0;
-                    input[B as usize].val[Y as usize][X as usize][0] = r as f32;
-                    input[B as usize].val[Y as usize][X as usize][1] = g as f32;
-                    input[B as usize].val[Y as usize][X as usize][2] = b as f32;
-                }
-            }
-            let outputs = run_inference(input).await ;
+            let outputs = run_inference(images).await ;
 
-            for (out, req) in outputs.into_iter().zip(batch.into_iter()) {
-                let _ = req.resp_tx.send(Ok(out));
+            for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
+                let _ = req.send(Ok(out));
             }
         }
     }
@@ -149,12 +146,17 @@ pub struct model_client {
 impl model_client {
     pub async fn do_infer(
         &self,
-        img: image::RgbaImage,
+        mut binary_image_data: Vec<u8>
     ) -> Result<arg_output, String> {
 
         let (resp_tx, resp_rx) = tokio::sync::oneshot::channel();
 
-        match self.tx.send(InferRequest { img, resp_tx}).await {
+        let img = match arg_input::from(binary_image_data) {
+            Ok(O) => {O} ,
+            Err(E) => {println!("Failed to decode image, using blind 0s");E}
+        } ;
+
+        match self.tx.send(InferRequest{ img: img, resp_tx: resp_tx}).await {
             Ok(_) => match resp_rx.await {
                 Ok(Ok(pred)) => {
                     return Ok(pred);
@@ -173,15 +175,7 @@ impl model_client {
     }
 
     pub async fn do_infer_data(&self, data: Vec<u8>) -> Result<arg_output, String> {
-
-        match self.preprocess.decode_and_preprocess(data) {
-            Ok(img) => {
-                return self.do_infer(img).await;
-            }
-            Err(e) => {
-                return Err("Failed to decode and pre-process the image".to_string());
-            }
-        }
+        return self.do_infer(data).await;
     }
 }
 
