@@ -103,6 +103,10 @@ def test_model(path_file_in):
     return output
 
 
+def compile_model_to_aot_inductor(path_file_input, path_file_output):
+    produce_model(path_file_out=path_file_output)
+
+
 class model_wrapper(torch.nn.Module):
     ################################################################
     ## Forward related functions BEGIN #############################
@@ -185,7 +189,3 @@ class model_wrapper(torch.nn.Module):
     ################################################################
     ## Init related functions END ##################################
     ################################################################
-
-
-produce_model(path_file_out=sys.argv[1])
-test_model(path_file_in=sys.argv[1])

@@ -5,27 +5,10 @@ BLD="${SRC}/../build"
 mkdir -pv -- "${BLD}"
 BLD="$('realpath' "${BLD}")"
 
-cd "${BLD}"
-cmake "${SRC}"
-make -j4
-make install
-
 cd "${SRC}"
-export RUSTFLAGS="-C target-cpu=native"
-export CARGO_TARGET_DIR="${BLD}/cargo"
-mkdir -pv -- "${CARGO_TARGET_DIR}"
-bindgen './src/export.hpp' > './src/export.rs'
-cargo build --bin infer-server --release
-cargo build --bin infer-client --release
-cp -vf -- "${CARGO_TARGET_DIR}/release/infer-server" "${BLD}/"
-mkdir -pv -- '/usr/bin/'
-install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server'
-install --compare  "${CARGO_TARGET_DIR}/release/infer-client" '/usr/bin/infer-client'
-
-cd "${SRC}"
-H="$(sha512sum ./main.py | cut -d ' ' -f1)"
-mkdir -pv -- "${BLD}/${H}"
-test -e "${BLD}/${H}/model.pt2" || ./main.py "${BLD}/${H}/model.pt2"
-ln -vfs -- "${BLD}/${H}/model.pt2" '/model.pt2'
+H="$(cat ./main.py | sha512sum | cut -d ' ' -f1)"
+mkdir -pv -- "${HOME}/.cache/${H}"
+test -e "${HOME}/.cache/${H}/model.pt2" || ./compile.py './model.ckpt' "${HOME}/.cache/${H}/model.pt2"
+ln -vfs -- "${HOME}/.cache/${H}/model.pt2" '/model.pt2'
 
 exit '0'

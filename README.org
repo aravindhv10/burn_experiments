@@ -22,103 +22,25 @@
   curl -X POST "http://127.0.0.1:8000/infer" -F "file=@./image.jpg"
 #+end_src
 
-* Scripts to run image
+* Script to build docker image
 
 ** Add file to git
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
-  GITADD 'image_run.sh'
-  GITADD 'image_run_amd.sh'
-  GITADD 'image_run_nvidia.sh'
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  GITADD 'build_container.sh'
 #+end_src
 
-** Actual script
-
-*** For cpu
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
-  cd "$(dirname -- "${0}")"
-
-  mkdir -pv -- "${HOME}/BUILD"
-
-  IMAGE_NAME='6_pytorch'
-
-  RUN_CONTAINER () {
-      CMD='sudo -A docker'
-      which podman && CMD='podman'
-      ${CMD} run \
-          -it --rm \
-          '--security-opt' 'seccomp=unconfined' \
-          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
-          -v "$(realpath .):/data/source" \
-          -v "${HOME}/BUILD:/data/build" \
-          -v "CACHE:/usr/local/cargo/registry" \
-          -v "CACHE:/root/.cache" \
-          "${IMAGE_NAME}" zsh \
-      ;
-  }
-
-  RUN_CONTAINER
-#+end_src
-
-*** For amd gpu
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run_amd.sh
-  cd "$(dirname -- "${0}")"
-
-  mkdir -pv -- "${HOME}/BUILD"
-
-  IMAGE_NAME='6_pytorch'
-
-  RUN_CONTAINER () {
-      CMD='sudo -A docker'
-      which podman && CMD='podman'
-      ${CMD} run \
-          -it --rm \
-          '--device' '/dev/kfd' \
-          '--device' '/dev/dri' \
-          '--security-opt' 'seccomp=unconfined' \
-          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
-          -v "$(realpath .):/data/source" \
-          -v "${HOME}/BUILD:/data/build" \
-          -v "CACHE:/usr/local/cargo/registry" \
-          -v "CACHE:/root/.cache" \
-          -e 'ROCR_VISIBLE_DEVICES=0' \
-          "${IMAGE_NAME}" zsh \
-      ;
-  }
-
-  RUN_CONTAINER
-#+end_src
-
-*** For nvidia gpu
-#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run_nvidia.sh
-  cd "$(dirname -- "${0}")"
-
-  mkdir -pv -- "${HOME}/BUILD"
-
-  IMAGE_NAME='6_pytorch'
-
-  RUN_CONTAINER () {
-      CMD='sudo -A docker'
-      which podman && CMD='podman'
-      ${CMD} run \
-          --tty \
-          --interactive \
-          --rm \
-          --gpus 'all,"capabilities=compute,utility,video"' \
-          --ipc host \
-          --ulimit memlock=-1 \
-          --ulimit stack=67108864 \
-          --shm-size 107374182400 \
-          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
-          -v "$(realpath .):/data/source" \
-          -v "${HOME}/BUILD:/data/build" \
-          -v "CACHE:/usr/local/cargo/registry" \
-          -v "CACHE:/root/.cache" \
-          -v "CACHE:/root/.triton" \
-          "${IMAGE_NAME}" zsh \
-      ;
-  }
-
-  RUN_CONTAINER
+** Actual script to build the container
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./build_container.sh
+  cd "$('dirname' -- "${0}")"
+  cp -apf "${HOME}/important_common_utils" ./
+  IMAGE_NAME='7_rust_libtorch'
+  mkdir -pv -- './build'
+  H="$(cat './Dockerfile' | sha512sum | cut -d ' ' -f1)"
+  test -e "./build/${H}" && exit '0'
+  CMD='sudo -A docker'
+  which buildah && CMD='buildah'
+  ${CMD} build -t "${IMAGE_NAME}" -f './Dockerfile' . && touch "./build/${H}"
+  exit '0'
 #+end_src
 
 * Python file to produce the model file and compile it
@@ -348,10 +270,183 @@
       return output
 #+end_src
 
-**** execute
+**** Function wrapper to maintain compatibility
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
+  def compile_model_to_aot_inductor(path_file_input, path_file_output):
+      produce_model(path_file_out=path_file_output)
+#+end_src
+
+**** COMMENT execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
   produce_model(path_file_out=sys.argv[1])
   test_model(path_file_in=sys.argv[1])
+#+end_src
+
+* Python program to export the model
+
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  GITADD 'compile.py'
+#+end_src
+
+** Actual file
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.py
+  from main import compile_model_to_aot_inductor
+  import sys
+
+  if __name__ == "__main__":
+      compile_model_to_aot_inductor(sys.argv[1], sys.argv[2])
+#+end_src
+
+* Dockerfile to produce single self contained image
+
+** Add docker file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  GITADD 'Dockerfile'
+#+end_src
+
+** Actual docker file
+#+begin_src conf :mkdirp yes :tangle ./Dockerfile
+  FROM 6_pytorch
+
+  RUN mkdir -pv -- '/root/source' '/root/build'
+
+  COPY './CMakeLists.txt' '/root/source/CMakeLists.txt'
+  COPY './Cargo.toml' '/root/source/Cargo.toml'
+  COPY './build.rs' '/root/source/build.rs'
+  COPY './compile.py' '/root/source/compile.py'
+  COPY './compile.sh' '/root/source/compile.sh'
+  COPY './infer.proto' '/root/source/infer.proto'
+  COPY './main.py' '/root/source/main.py'
+  COPY './src/client.rs' '/root/source/src/client.rs'
+  COPY './src/export.hpp' '/root/source/src/export.hpp'
+  COPY './src/main.cpp' '/root/source/src/main.cpp'
+  COPY './src/main.hpp' '/root/source/src/main.hpp'
+  COPY './src/main.rs' '/root/source/src/main.rs'
+  COPY './src/model.rs' '/root/source/src/model.rs'
+  COPY './src/mylib.rs' '/root/source/src/mylib.rs'
+  COPY './src/test.cpp' '/root/source/src/test.cpp'
+
+  RUN \
+      echo 'START Compile c++ parts' \
+      && cd '/root/build' \
+      && cmake '../source' \
+      && make -j4 \
+      && make install \
+      && echo 'DONE Compile c++ parts' ;
+
+
+  ENV RUSTFLAGS="-C target-cpu=native"
+  ENV CARGO_TARGET_DIR="/root/build/cargo"
+
+  RUN \
+      echo 'START Compiling rust parts' \
+      && cd '/root/source' \
+      && bindgen './src/export.hpp' > './src/export.rs' \
+      && cargo build --bin infer-server --release \
+      && cargo build --bin infer-client --release \
+      && install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server' \
+      && install --compare  "${CARGO_TARGET_DIR}/release/infer-client" '/usr/bin/infer-client' \
+      && echo 'DONE Compiling rust parts' ;
+#+end_src
+
+* Scripts to run image
+
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
+  GITADD 'image_run.sh'
+  GITADD 'image_run_amd.sh'
+  GITADD 'image_run_nvidia.sh'
+#+end_src
+
+** Actual script
+
+*** For cpu
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run.sh
+  cd "$(dirname -- "${0}")"
+
+  mkdir -pv -- "${HOME}/BUILD"
+
+  IMAGE_NAME='7_rust_libtorch_demo'
+
+  RUN_CONTAINER () {
+      CMD='sudo -A docker'
+      which podman && CMD='podman'
+      ${CMD} run \
+          -it --rm \
+          '--security-opt' 'seccomp=unconfined' \
+          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
+          -v "$(realpath .):/data/source" \
+          -v "${HOME}/BUILD:/data/build" \
+          -v "CACHE:/usr/local/cargo/registry" \
+          -v "CACHE:/root/.cache" \
+          "${IMAGE_NAME}" zsh \
+      ;
+  }
+
+  RUN_CONTAINER
+#+end_src
+
+*** For amd gpu
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run_amd.sh
+  cd "$(dirname -- "${0}")"
+
+  mkdir -pv -- "${HOME}/BUILD"
+
+  IMAGE_NAME='6_pytorch'
+
+  RUN_CONTAINER () {
+      CMD='sudo -A docker'
+      which podman && CMD='podman'
+      ${CMD} run \
+          -it --rm \
+          '--device' '/dev/kfd' \
+          '--device' '/dev/dri' \
+          '--security-opt' 'seccomp=unconfined' \
+          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
+          -v "$(realpath .):/data/source" \
+          -v "${HOME}/BUILD:/data/build" \
+          -v "CACHE:/usr/local/cargo/registry" \
+          -v "CACHE:/root/.cache" \
+          -e 'ROCR_VISIBLE_DEVICES=0' \
+          "${IMAGE_NAME}" zsh \
+      ;
+  }
+
+  RUN_CONTAINER
+#+end_src
+
+*** For nvidia gpu
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./image_run_nvidia.sh
+  cd "$(dirname -- "${0}")"
+
+  mkdir -pv -- "${HOME}/BUILD"
+
+  IMAGE_NAME='6_pytorch'
+
+  RUN_CONTAINER () {
+      CMD='sudo -A docker'
+      which podman && CMD='podman'
+      ${CMD} run \
+          --tty \
+          --interactive \
+          --rm \
+          --gpus 'all,"capabilities=compute,utility,video"' \
+          --ipc host \
+          --ulimit memlock=-1 \
+          --ulimit stack=67108864 \
+          --shm-size 107374182400 \
+          --mount 'type=tmpfs,destination=/data/TMPFS,tmpfs-size=137438953472' \
+          -v "$(realpath .):/data/source" \
+          -v "${HOME}/BUILD:/data/build" \
+          -v "CACHE:/usr/local/cargo/registry" \
+          -v "CACHE:/root/.cache" \
+          -v "CACHE:/root/.triton" \
+          "${IMAGE_NAME}" zsh \
+      ;
+  }
+
+  RUN_CONTAINER
 #+end_src
 
 * Main c++ - rust interface
@@ -836,7 +931,6 @@
 
 **** Outputs from bindgen
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  // #[link(name="mytorch")]
   include!("export.rs");
 #+end_src
 
@@ -1217,10 +1311,6 @@
 ** Run server
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-  SRC="$(realpath .)"
-  BLD="${SRC}/../build"
-  mkdir -pv -- "${BLD}"
-  cd "${BLD}"
 
   export ROCR_VISIBLE_DEVICES=0
   ./infer-server
@@ -1241,18 +1331,26 @@
 #+end_src
 
 ** Actual script
+
+*** Header
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile.sh
   cd "$(dirname -- "${0}")"
   SRC="$(realpath .)"
   BLD="${SRC}/../build"
   mkdir -pv -- "${BLD}"
   BLD="$('realpath' "${BLD}")"
+#+end_src
 
+*** COMMENT Build c++
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile.sh
   cd "${BLD}"
   cmake "${SRC}"
   make -j4
   make install
+#+end_src
 
+*** COMMENT Build rust
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile.sh
   cd "${SRC}"
   export RUSTFLAGS="-C target-cpu=native"
   export CARGO_TARGET_DIR="${BLD}/cargo"
@@ -1264,13 +1362,19 @@
   mkdir -pv -- '/usr/bin/'
   install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server'
   install --compare  "${CARGO_TARGET_DIR}/release/infer-client" '/usr/bin/infer-client'
+#+end_src
 
+*** Build pytorch model
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile.sh
   cd "${SRC}"
-  H="$(sha512sum ./main.py | cut -d ' ' -f1)"
-  mkdir -pv -- "${BLD}/${H}"
-  test -e "${BLD}/${H}/model.pt2" || ./main.py "${BLD}/${H}/model.pt2"
-  ln -vfs -- "${BLD}/${H}/model.pt2" '/model.pt2'
+  H="$(cat ./main.py | sha512sum | cut -d ' ' -f1)"
+  mkdir -pv -- "${HOME}/.cache/${H}"
+  test -e "${HOME}/.cache/${H}/model.pt2" || ./compile.py './model.ckpt' "${HOME}/.cache/${H}/model.pt2"
+  ln -vfs -- "${HOME}/.cache/${H}/model.pt2" '/model.pt2'
+#+end_src
 
+*** Exit the script
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./compile.sh
   exit '0'
 #+end_src
 
@@ -1282,34 +1386,3 @@
       './.git.sh'
   " "log" "err")
 #+end_src
-
-use std::mem::{self, MaybeUninit};
-
-// Assume this is your C function signature (using C-style raw pointer)
-extern "C" {
-    fn initialize_array_from_c(data_ptr: *mut arg_input);
-}
-
-// Function to handle the allocation and C call
-pub fn allocate_and_init_from_c() -> Box<arg_input> {
-    // Step 1: Allocate space on the heap for arg_input, but leave it uninitialized.
-    // This call does NOT run the Rust initialization code for `val`.
-    let mut uninit_box: Box<MaybeUninit<arg_input>> = Box::new_uninit();
-
-    // The entire process from here must be wrapped in `unsafe` because we are:
-    // 1. Interacting with external C code (`initialize_array_from_c`).
-    // 2. Asserting that the memory is initialized (`assume_init`).
-    unsafe {
-        // Step 2: Get a raw mutable pointer to the *uninitialized* data inside the box.
-        let data_ptr: *mut arg_input = uninit_box.as_mut_ptr();
-        
-        // Step 3: Call the C function, which writes data into the memory pointed to by data_ptr.
-        // It is the C function's responsibility to fully initialize *all* fields of `arg_input`.
-        initialize_array_from_c(data_ptr);
-        
-        // Step 4: *Safely* convert the Box<MaybeUninit<arg_input>> into a Box<arg_input>.
-        // This is safe ONLY if you are absolutely certain that the C function has
-        // fully initialized the entire structure.
-        uninit_box.assume_init()
-    }
-}
