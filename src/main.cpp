@@ -35,9 +35,11 @@ public:
 
   infer_slave()
       : loader("/model.pt2"),
-        options(get_good_device_and_dtype()), options_host(get_host_device_and_dtype()) {
+        options(get_good_device_and_dtype()),
+        options_host(get_host_device_and_dtype()) {
     inputs.resize(1);
   }
+
 
   ~infer_slave() {}
 };

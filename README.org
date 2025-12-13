@@ -9,6 +9,19 @@
   GITADD 'README.org'
 #+end_src
 
+* Write a curl script for sample execution
+
+** Add file to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+  GITADD 'curl.sh'
+#+end_src
+
+** Actual file
+#+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./curl.sh
+  curl -X POST "http://127.0.0.1:8000/infer" -F "file=@./image.png"
+  curl -X POST "http://127.0.0.1:8000/infer" -F "file=@./image.jpg"
+#+end_src
+
 * Scripts to run image
 
 ** Add file to git
@@ -444,9 +457,11 @@
 
     infer_slave()
         : loader("/model.pt2"),
-          options(get_good_device_and_dtype()), options_host(get_host_device_and_dtype()) {
+          options(get_good_device_and_dtype()),
+          options_host(get_host_device_and_dtype()) {
       inputs.resize(1);
     }
+
 
     ~infer_slave() {}
   };
@@ -605,10 +620,8 @@
   include = [
       "src/main.cpp",
       "src/main.hpp",
-      "src/main.h",
       "src/main.rs",
       "Cargo.toml",
-      "Makefile",
       "build.rs",
       "compile.py",
   ]
