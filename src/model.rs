@@ -7,6 +7,24 @@ impl arg_input {
             val: [[[0.0; SIZE_C as  usize]; SIZE_X as usize]; SIZE_X as usize],
         }
     }
+
+    pub fn from_binary_image_data(mut self: Self, mut data: Vec<u8>) -> Result<Self, Self> {
+        let mut success = false;
+
+        unsafe {
+            success = decode_image_data(
+                /*binary_data: *mut ::std::os::raw::c_uchar =*/ data.as_mut_ptr(),
+                /*data_size: ::std::os::raw::c_int =*/ data.len().try_into().unwrap(),
+                /*dst_struct: *mut arg_input =*/ &mut self
+            )
+        }
+
+        if success {
+            return Ok(self);
+        } else {
+            return Err(self);
+        }
+    }
 }
 
 impl Default for arg_input {

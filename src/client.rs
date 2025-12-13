@@ -2,7 +2,6 @@ pub mod infer {
     tonic::include_proto!("infer"); // The string specified here must match the proto package name
 }
 
-// use std::error::Error;
 use std::fs;
 
 #[tokio::main]
