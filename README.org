@@ -1310,16 +1310,15 @@
 ** Run server
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./run.sh
   cd "$(dirname -- "${0}")"
-
   export ROCR_VISIBLE_DEVICES=0
-  ./infer-server
+  ./compile.sh
+  exec infer-server
 #+end_src
 
 ** Run Client
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./infer.sh
-  cd "$(dirname -- "${0}")"
-  export RUSTFLAGS="-C target-cpu=native"
-  cargo run --bin infer-client --release
+  cd '/data/source'
+  infer-client
 #+end_src
 
 * Script to compile everything
