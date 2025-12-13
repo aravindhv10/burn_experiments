@@ -276,10 +276,10 @@
 
           print("device = ", device)
 
-          model = model.to(device=device)
+          model = model.to(device=device, dtype=torch.bfloat16)
           x = torch.rand(
               INPUT_SHAPE,
-              dtype=torch.float32,
+              dtype=torch.bfloat16,
               device=device,
           )
 
@@ -310,7 +310,10 @@
 **** function to test if it works
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
   def test_model(path_file_in):
-      device = "cuda"
+      if torch.cuda.is_available():
+          device = "cuda"
+      else:
+          device = "cpu"
       model = torch._inductor.aoti_load_package(path_file_in)
       x = torch.rand(
           (
@@ -319,7 +322,7 @@
               SIZE_X,
               SIZE_C,
           ),
-          dtype=torch.float32,
+          dtype=torch.bfloat16,
           device=device,
       )
       with torch.inference_mode():

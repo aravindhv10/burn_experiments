@@ -50,10 +50,10 @@ def produce_model(path_file_out):
         else:
             device = "cpu"
         print("device = ", device)
-        model = model.to(device=device)
+        model = model.to(device=device, dtype=torch.bfloat16)
         x = torch.rand(
             INPUT_SHAPE,
-            dtype=torch.float32,
+            dtype=torch.bfloat16,
             device=device,
         )
         dynamic_shapes = {
@@ -79,7 +79,10 @@ def produce_model(path_file_out):
 
 
 def test_model(path_file_in):
-    device = "cuda"
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
     model = torch._inductor.aoti_load_package(path_file_in)
     x = torch.rand(
         (
@@ -88,7 +91,7 @@ def test_model(path_file_in):
             SIZE_X,
             SIZE_C,
         ),
-        dtype=torch.float32,
+        dtype=torch.bfloat16,
         device=device,
     )
     with torch.inference_mode():
