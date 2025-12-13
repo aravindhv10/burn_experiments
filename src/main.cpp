@@ -1,5 +1,17 @@
 #include "./main.hpp"
 
+inline torch::TensorOptions get_good_device_and_dtype(){
+    if (torch::cuda::is_available()) {
+        return torch::TensorOptions()
+            .dtype(torch::kBFloat16)
+            .device(torch::kCUDA);
+    } else {
+        return torch::TensorOptions()
+            .dtype(torch::kBFloat16)
+            .device(torch::kCPU);
+    }
+}
+
 class infer_slave {
   c10::InferenceMode mode;
   torch::inductor::AOTIModelPackageLoader loader;
@@ -25,8 +37,7 @@ public:
 
   infer_slave()
       : loader("/model.pt2"),
-        options(
-            torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA)) {
+        options(get_good_device_and_dtype()) {
     inputs.resize(1);
   }
 

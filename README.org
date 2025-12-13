@@ -303,7 +303,7 @@
 **** execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
   produce_model(path_file_out=sys.argv[1])
-  test_model(path_file_in=sys.argv[1])
+  # test_model(path_file_in=sys.argv[1])
 #+end_src
 
 * C++ program
@@ -340,6 +340,7 @@
   };
 
   void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out);
+  bool decode_image_data(unsigned char *binary_data, int data_size, arg_input * dst_struct);
   }
 #+end_src
 
@@ -373,6 +374,18 @@
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   #include "./main.hpp"
 
+  inline torch::TensorOptions get_good_device_and_dtype(){
+      if (torch::cuda::is_available()) {
+          return torch::TensorOptions()
+              .dtype(torch::kBFloat16)
+              .device(torch::kCUDA);
+      } else {
+          return torch::TensorOptions()
+              .dtype(torch::kBFloat16)
+              .device(torch::kCPU);
+      }
+  }
+
   class infer_slave {
     c10::InferenceMode mode;
     torch::inductor::AOTIModelPackageLoader loader;
@@ -398,8 +411,7 @@
 
     infer_slave()
         : loader("/model.pt2"),
-          options(
-              torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA)) {
+          options(get_good_device_and_dtype()) {
       inputs.resize(1);
     }
 

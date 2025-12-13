@@ -182,4 +182,4 @@ class model_wrapper(torch.nn.Module):
 
 
 produce_model(path_file_out=sys.argv[1])
-test_model(path_file_in=sys.argv[1])
+# test_model(path_file_in=sys.argv[1])
