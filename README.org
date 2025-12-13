@@ -417,10 +417,15 @@
       }
   }
 
+  inline torch::TensorOptions get_host_device_and_dtype(){
+      return torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+  }
+
   class infer_slave {
     c10::InferenceMode mode;
     torch::inductor::AOTIModelPackageLoader loader;
     torch::TensorOptions options;
+    torch::TensorOptions options_host;
     torch::Tensor input_tensor;
     std::vector<torch::Tensor> inputs;
     std::vector<torch::Tensor> outputs;
@@ -432,14 +437,14 @@
       torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, torch::kCPU);
       inputs[0] = cpu_tensor.to(options);
       outputs = loader.run(inputs);
-      out_tensor = outputs[0].contiguous().cpu();
+      out_tensor = outputs[0].contiguous().cpu().to(options_host);
       bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
       std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
     }
 
     infer_slave()
         : loader("/model.pt2"),
-          options(get_good_device_and_dtype()) {
+          options(get_good_device_and_dtype()), options_host(get_host_device_and_dtype()) {
       inputs.resize(1);
     }
 
