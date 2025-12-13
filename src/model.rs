@@ -8,21 +8,19 @@ impl arg_input {
         }
     }
 
-    pub fn from_binary_image_data(mut self: Self, mut data: Vec<u8>) -> Result<Self, Self> {
-        let mut success = false;
-
+    pub fn from(mut binary_image_data: Vec<u8>) -> Result<Box<Self>, Box<Self>>  {
+        let mut tmp: Box<std::mem::MaybeUninit<Self>> = Box::new_uninit();
         unsafe {
-            success = decode_image_data(
-                /*binary_data: *mut ::std::os::raw::c_uchar =*/ data.as_mut_ptr(),
-                /*data_size: ::std::os::raw::c_int =*/ data.len().try_into().unwrap(),
-                /*dst_struct: *mut arg_input =*/ &mut self
-            )
-        }
-
-        if success {
-            return Ok(self);
-        } else {
-            return Err(self);
+            let tmp_ptr: *mut Self = tmp.as_mut_ptr();
+            let success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
+            if success {
+                Ok(tmp.assume_init())
+            } else {
+                let byte_ptr = tmp_ptr as *mut u8;
+                let size_in_bytes = std::mem::size_of::<Self>();
+                std::ptr::write_bytes(byte_ptr, 0, size_in_bytes);
+                Err(tmp.assume_init())
+            }
         }
     }
 }

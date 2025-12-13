@@ -856,21 +856,19 @@
           }
       }
 
-      pub fn from_binary_image_data(mut self: Self, mut data: Vec<u8>) -> Result<Self, Self> {
-          let mut success = false;
-
+      pub fn from(mut binary_image_data: Vec<u8>) -> Result<Box<Self>, Box<Self>>  {
+          let mut tmp: Box<std::mem::MaybeUninit<Self>> = Box::new_uninit();
           unsafe {
-              success = decode_image_data(
-                  /*binary_data: *mut ::std::os::raw::c_uchar =*/ data.as_mut_ptr(),
-                  /*data_size: ::std::os::raw::c_int =*/ data.len().try_into().unwrap(),
-                  /*dst_struct: *mut arg_input =*/ &mut self
-              )
-          }
-
-          if success {
-              return Ok(self);
-          } else {
-              return Err(self);
+              let tmp_ptr: *mut Self = tmp.as_mut_ptr();
+              let success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
+              if success {
+                  Ok(tmp.assume_init())
+              } else {
+                  let byte_ptr = tmp_ptr as *mut u8;
+                  let size_in_bytes = std::mem::size_of::<Self>();
+                  std::ptr::write_bytes(byte_ptr, 0, size_in_bytes);
+                  Err(tmp.assume_init())
+              }
           }
       }
   }
@@ -1292,3 +1290,34 @@
       './.git.sh'
   " "log" "err")
 #+end_src
+
+use std::mem::{self, MaybeUninit};
+
+// Assume this is your C function signature (using C-style raw pointer)
+extern "C" {
+    fn initialize_array_from_c(data_ptr: *mut arg_input);
+}
+
+// Function to handle the allocation and C call
+pub fn allocate_and_init_from_c() -> Box<arg_input> {
+    // Step 1: Allocate space on the heap for arg_input, but leave it uninitialized.
+    // This call does NOT run the Rust initialization code for `val`.
+    let mut uninit_box: Box<MaybeUninit<arg_input>> = Box::new_uninit();
+
+    // The entire process from here must be wrapped in `unsafe` because we are:
+    // 1. Interacting with external C code (`initialize_array_from_c`).
+    // 2. Asserting that the memory is initialized (`assume_init`).
+    unsafe {
+        // Step 2: Get a raw mutable pointer to the *uninitialized* data inside the box.
+        let data_ptr: *mut arg_input = uninit_box.as_mut_ptr();
+        
+        // Step 3: Call the C function, which writes data into the memory pointed to by data_ptr.
+        // It is the C function's responsibility to fully initialize *all* fields of `arg_input`.
+        initialize_array_from_c(data_ptr);
+        
+        // Step 4: *Safely* convert the Box<MaybeUninit<arg_input>> into a Box<arg_input>.
+        // This is safe ONLY if you are absolutely certain that the C function has
+        // fully initialized the entire structure.
+        uninit_box.assume_init()
+    }
+}
