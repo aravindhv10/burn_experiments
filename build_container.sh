@@ -1,7 +1,6 @@
 #!/bin/sh
 cd "$('dirname' -- "${0}")"
-cp -apf "${HOME}/important_common_utils" ./
-IMAGE_NAME='7_rust_libtorch'
+IMAGE_NAME='7_rust_libtorch_demo'
 mkdir -pv -- './build'
 H="$(cat './Dockerfile' | sha512sum | cut -d ' ' -f1)"
 test -e "./build/${H}" && exit '0'

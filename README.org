@@ -32,8 +32,7 @@
 ** Actual script to build the container
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./build_container.sh
   cd "$('dirname' -- "${0}")"
-  cp -apf "${HOME}/important_common_utils" ./
-  IMAGE_NAME='7_rust_libtorch'
+  IMAGE_NAME='7_rust_libtorch_demo'
   mkdir -pv -- './build'
   H="$(cat './Dockerfile' | sha512sum | cut -d ' ' -f1)"
   test -e "./build/${H}" && exit '0'
@@ -393,7 +392,7 @@
 
   mkdir -pv -- "${HOME}/BUILD"
 
-  IMAGE_NAME='6_pytorch'
+  IMAGE_NAME='7_rust_libtorch'
 
   RUN_CONTAINER () {
       CMD='sudo -A docker'
@@ -422,7 +421,7 @@
 
   mkdir -pv -- "${HOME}/BUILD"
 
-  IMAGE_NAME='6_pytorch'
+  IMAGE_NAME='7_rust_libtorch'
 
   RUN_CONTAINER () {
       CMD='sudo -A docker'
