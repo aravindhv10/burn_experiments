@@ -585,8 +585,11 @@
   extern "C" {
     void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {slave(in,batch_size,out);}
     bool decode_image_data(unsigned char *binary_data, int data_size, arg_input * dst_struct){
+      printf("Came inside the c++ decode_image_data function\n");
       /*inline*/ cv::Mat ret = process_image_data(/*unsigned char *binary_data =*/ binary_data, /*int data_size =*/ data_size) ;
+      printf("Done with decoding to cv::Mat\n");
       /*inline*/ bool res = convertMatToStruct(/*const cv::Mat& src_mat =*/ ret, /*arg_input& dst_struct =*/ *dst_struct) ;
+      printf("Done writing to pointer\n");
       return res;
     }
   }
@@ -857,13 +860,18 @@
       }
 
       pub fn from(mut binary_image_data: Vec<u8>) -> Result<Box<Self>, Box<Self>>  {
+          println!("Started decoding the image");
           let mut tmp: Box<std::mem::MaybeUninit<Self>> = Box::new_uninit();
           unsafe {
               let tmp_ptr: *mut Self = tmp.as_mut_ptr();
+              println!("Got the arg_input pointer");
               let success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
+              println!("Returned from the c++ function");
               if success {
+                  println!("Image is successfully decoded!");
                   Ok(tmp.assume_init())
               } else {
+                  println!("Decode failed, returning 0");
                   let byte_ptr = tmp_ptr as *mut u8;
                   let size_in_bytes = std::mem::size_of::<Self>();
                   std::ptr::write_bytes(byte_ptr, 0, size_in_bytes);

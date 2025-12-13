@@ -109,8 +109,11 @@ inline bool convertMatToStruct(const cv::Mat& src_mat, arg_input& dst_struct) {
 extern "C" {
   void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {slave(in,batch_size,out);}
   bool decode_image_data(unsigned char *binary_data, int data_size, arg_input * dst_struct){
+    printf("Came inside the c++ decode_image_data function\n");
     /*inline*/ cv::Mat ret = process_image_data(/*unsigned char *binary_data =*/ binary_data, /*int data_size =*/ data_size) ;
+    printf("Done with decoding to cv::Mat\n");
     /*inline*/ bool res = convertMatToStruct(/*const cv::Mat& src_mat =*/ ret, /*arg_input& dst_struct =*/ *dst_struct) ;
+    printf("Done writing to pointer\n");
     return res;
   }
 }

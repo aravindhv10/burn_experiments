@@ -9,13 +9,18 @@ impl arg_input {
     }
 
     pub fn from(mut binary_image_data: Vec<u8>) -> Result<Box<Self>, Box<Self>>  {
+        println!("Started decoding the image");
         let mut tmp: Box<std::mem::MaybeUninit<Self>> = Box::new_uninit();
         unsafe {
             let tmp_ptr: *mut Self = tmp.as_mut_ptr();
+            println!("Got the arg_input pointer");
             let success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
+            println!("Returned from the c++ function");
             if success {
+                println!("Image is successfully decoded!");
                 Ok(tmp.assume_init())
             } else {
+                println!("Decode failed, returning 0");
                 let byte_ptr = tmp_ptr as *mut u8;
                 let size_in_bytes = std::mem::size_of::<Self>();
                 std::ptr::write_bytes(byte_ptr, 0, size_in_bytes);
