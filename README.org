@@ -573,9 +573,9 @@
       for (int y = 0; y < SIZE_Y; ++y) {
           const uint8_t* src_row = src_mat.ptr<uint8_t>(y);
           for (int x = 0; x < SIZE_X; ++x) {
-            dst_struct->val[y][x][0] = src_row[x][2];
-            dst_struct->val[y][x][1] = src_row[x][1];
-            dst_struct->val[y][x][2] = src_row[x][0];
+            for(int c=0; c<SIZE_C; ++c){
+              dst_struct.val[y][x][c] = src_row[(x*SIZE_C) + (SIZE_C-1-c)];
+            }
         }
       }
 
