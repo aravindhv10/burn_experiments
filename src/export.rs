@@ -7,7 +7,7 @@ pub const SIZE_Y: ::std::os::raw::c_uint = 448;
 pub const SIZE_X: ::std::os::raw::c_uint = 448;
 pub const SIZE_C: ::std::os::raw::c_uint = 3;
 pub const SIZE_O: ::std::os::raw::c_uint = 3;
-pub type intype = f32;
+pub type intype = u8;
 pub type outtype = f32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

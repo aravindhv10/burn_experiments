@@ -31,23 +31,43 @@ inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
 
   cv::Rect roi(x_start, y_start, IMAGE_RESOLUTION, IMAGE_RESOLUTION);
   cv::Mat cropped_img = resized_img(roi);
-  return cropped_img;
 
-  // cv::Mat rgb_img;
-  // // cv::cvtColor(cropped_img, rgb_img, cv::COLOR_BGR2RGB);
-  // return rgb_img;
+  if (false) {
+    return cropped_img;
+  } else {
+    cv::Mat rgb_img;
+    cv::cvtColor(cropped_img, rgb_img, cv::COLOR_BGR2RGB);
+    return rgb_img;
+  }
 }
 
 inline bool convertMatToStruct(const cv::Mat& src_mat, arg_input& dst_struct) {
     if (src_mat.rows != SIZE_Y || src_mat.cols != SIZE_X) {return false;}
     if (src_mat.type() != CV_8UC3) {return false;}
-    for (int y = 0; y < SIZE_Y; ++y) {
-        const uint8_t* src_row = src_mat.ptr<uint8_t>(y);
-        for (int x = 0; x < SIZE_X; ++x) {
-          for(int c=0; c<SIZE_C; ++c){
-            dst_struct.val[y][x][c] = src_row[(x*SIZE_C) + (SIZE_C-1-c)];
-          }
-      }
+    if (src_mat.isContinuous()) {
+        constexpr size_t EXPECTED_SIZE_BYTES = SIZE_Y * SIZE_X * SIZE_C * sizeof(intype);
+        const uint8_t* mat_data_ptr = src_mat.data;
+        uint8_t* struct_data_ptr = reinterpret_cast<uint8_t*>(dst_struct.val);
+        std::memcpy(struct_data_ptr, mat_data_ptr, EXPECTED_SIZE_BYTES);
+    } else {
+        constexpr size_t ROW_SIZE_BYTES = SIZE_X * SIZE_C * sizeof(intype);
+        if(false) {
+            for (int y = 0; y < SIZE_Y; ++y) {
+                const uint8_t* src_row = src_mat.ptr<uint8_t>(y);
+                for (int x = 0; x < SIZE_X; ++x) {
+                    for(int c=0; c<SIZE_C; ++c){
+                        dst_struct.val[y][x][c] = src_row[(x*SIZE_C) + (SIZE_C-1-c)];
+                    }
+                }
+            }
+        } else {
+            constexpr size_t ROW_SIZE_BYTES = SIZE_X * SIZE_C * sizeof(intype);
+            for (int y = 0; y < SIZE_Y; ++y) {
+                const uint8_t* src_row = src_mat.ptr<uint8_t>(y);
+                uint8_t* dst_row = reinterpret_cast<uint8_t*>(dst_struct.val[y]);
+                std::memcpy(dst_row, src_row, ROW_SIZE_BYTES);
+            }
+        }
     }
     return true;
 }
@@ -61,7 +81,7 @@ inline torch::TensorOptions get_good_device_and_dtype(){
 }
 
 inline torch::TensorOptions get_host_device_and_dtype(){
-    return torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+    return torch::TensorOptions().dtype(torch::kUInt8).device(torch::kCPU);
 }
 
 class infer_slave {
