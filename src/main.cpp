@@ -91,7 +91,7 @@ inline torch::TensorOptions get_host_output_device_and_dtype(){
 class infer_slave {
   c10::InferenceMode mode;
   torch::inductor::AOTIModelPackageLoader loader;
-  torch::TensorOptions options;
+  torch::TensorOptions options_compute;
   torch::TensorOptions options_host_input ;
   torch::TensorOptions options_host_output ;
   torch::Tensor input_tensor;
@@ -102,25 +102,17 @@ class infer_slave {
 
 public:
   inline void operator()(arg_input *in, unsigned int const batch_size, arg_output *out) {
-    printf("\n");
-    printf("Step - 0\n");
     torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options_host_input);
-    printf("Step - 1\n");
-    inputs[0] = cpu_tensor.to(options);
-    printf("Step - 2\n");
+    inputs[0] = cpu_tensor.to(options_compute);
     outputs = loader.run(inputs);
-    printf("Step - 3\n");
     out_tensor = outputs[0].contiguous().cpu().to(options_host_output);
-    printf("Step - 4\n");
     bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
-    printf("Step - 5\n");
     std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
-    printf("Step - 6\n");
   }
 
   infer_slave()
       : loader("/model.pt2"),
-        options(get_good_device_and_dtype()),
+        options_compute(get_good_device_and_dtype()),
         options_host_input(get_host_input_device_and_dtype()),
         options_host_output(get_host_output_device_and_dtype()) {
     inputs.resize(1);
