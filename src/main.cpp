@@ -97,7 +97,7 @@ class infer_slave {
 
 public:
   inline void operator()(arg_input *in, unsigned int const batch_size, arg_output *out) {
-    torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, torch::kCPU);
+    torch::Tensor cpu_tensor = torch::from_blob(static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C}, options_host);
     inputs[0] = cpu_tensor.to(options);
     outputs = loader.run(inputs);
     out_tensor = outputs[0].contiguous().cpu().to(options_host);
