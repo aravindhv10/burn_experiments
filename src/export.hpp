@@ -25,8 +25,11 @@ struct arg_output {
 
 void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
                      arg_output *out);
+
 bool decode_image_data(unsigned char *binary_data, int data_size,
                        arg_input *dst_struct);
+
+arg_output *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
 }
 
 #endif
