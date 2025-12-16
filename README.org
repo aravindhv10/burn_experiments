@@ -397,7 +397,7 @@
 
   mkdir -pv -- "${HOME}/BUILD"
 
-  IMAGE_NAME='7_rust_libtorch'
+  IMAGE_NAME='7_rust_libtorch_demo'
 
   RUN_CONTAINER () {
       CMD='sudo -A docker'
@@ -426,7 +426,7 @@
 
   mkdir -pv -- "${HOME}/BUILD"
 
-  IMAGE_NAME='7_rust_libtorch'
+  IMAGE_NAME='7_rust_libtorch_demo'
 
   RUN_CONTAINER () {
       CMD='sudo -A docker'
@@ -1567,7 +1567,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Added run side wrapper to use the mem allocated in c side'
+      git commit -m 'Fixed container names'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
