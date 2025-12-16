@@ -91,43 +91,43 @@ template <typename T> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kBFloat16;
 }
 
-template <uint8_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::uint8_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kUInt8;
 }
 
-template <uint16_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::uint16_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kUInt16;
 }
 
-template <uint32_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::uint32_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kUInt32;
 }
 
-template <uint64_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::uint64_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kInt64;
 }
 
-template <int8_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::int8_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kInt8;
 }
 
-template <int16_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::int16_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kInt16;
 }
 
-template <int32_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::int32_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kInt32;
 }
 
-template <int64_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::int64_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kInt64;
 }
 
-template <float32_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::float32_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kFloat32;
 }
 
-template <float64_t> inline torch::TensorOptions get_tensor_dtype() {
+template <std::float64_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kFloat64;
 }
 

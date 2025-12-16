@@ -465,6 +465,9 @@
 
 *** C++ header
 #+begin_src c++ :mkdirp yes :tangle ./src/export.hpp
+  #ifndef _HEADER_GUARD_src_export_hpp_
+  #define _HEADER_GUARD_src_export_hpp_
+
   extern "C" {
 
   unsigned int constexpr IMAGE_RESOLUTION = 448;
@@ -487,9 +490,13 @@
     outtype val[SIZE_O];
   };
 
-  void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out);
-  bool decode_image_data(unsigned char *binary_data, int data_size, arg_input * dst_struct);
+  void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
+                       arg_output *out);
+  bool decode_image_data(unsigned char *binary_data, int data_size,
+                         arg_input *dst_struct);
   }
+
+  #endif
 #+end_src
 
 *** rs header
@@ -554,14 +561,21 @@
 
 *** Actual file
 #+begin_src c++ :mkdirp yes :tangle ./src/main.hpp
+  #ifndef _HEADER_GUARD_src_main_hpp
+  #define _HEADER_GUARD_src_main_hpp
+
   #include "./export.hpp"
+  #include <cstdint>
   #include <iostream>
   #include <opencv2/core/mat.hpp>
   #include <opencv2/imgcodecs.hpp>
   #include <opencv2/opencv.hpp>
+  #include <stdfloat>
   #include <torch/csrc/inductor/aoti_package/model_package_loader.h>
   #include <torch/torch.h>
   #include <vector>
+
+  #endif
 #+end_src
 
 ** Main C++ code
@@ -572,7 +586,6 @@
 #+end_src
 
 *** Actual file
-
 
 **** Include header
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
@@ -677,43 +690,43 @@
     return torch::kBFloat16;
   }
 
-  template <uint8_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::uint8_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kUInt8;
   }
 
-  template <uint16_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::uint16_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kUInt16;
   }
 
-  template <uint32_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::uint32_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kUInt32;
   }
 
-  template <uint64_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::uint64_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kInt64;
   }
 
-  template <int8_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::int8_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kInt8;
   }
 
-  template <int16_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::int16_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kInt16;
   }
 
-  template <int32_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::int32_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kInt32;
   }
 
-  template <int64_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::int64_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kInt64;
   }
 
-  template <float32_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::float32_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kFloat32;
   }
 
-  template <float64_t> inline torch::TensorOptions get_tensor_dtype() {
+  template <std::float64_t> inline torch::TensorOptions get_tensor_dtype() {
     return torch::kFloat64;
   }
 #+end_src
@@ -1500,7 +1513,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Added functions for translating c++ types to torch types for int'
+      git commit -m 'More streamlining on c++ side'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
