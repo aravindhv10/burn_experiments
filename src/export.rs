@@ -2,13 +2,13 @@
 
 pub const IMAGE_RESOLUTION: ::std::os::raw::c_uint = 448;
 pub const NUM_CHANNELS: ::std::os::raw::c_uint = 3;
-pub const NUM_CLASSES: ::std::os::raw::c_uint = 5;
+pub const NUM_CLASSES: ::std::os::raw::c_uint = 3;
 pub const SIZE_Y: ::std::os::raw::c_uint = 448;
 pub const SIZE_X: ::std::os::raw::c_uint = 448;
 pub const SIZE_C: ::std::os::raw::c_uint = 3;
-pub const SIZE_O: ::std::os::raw::c_uint = 5;
+pub const SIZE_O: ::std::os::raw::c_uint = 3;
 pub type intype = ::std::os::raw::c_uchar;
-pub type outtype = ::std::os::raw::c_long;
+pub type outtype = f32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct arg_input {
@@ -23,12 +23,12 @@ const _: () = {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct arg_output {
-    pub val: [outtype; 5usize],
+    pub val: [outtype; 3usize],
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of arg_output"][::std::mem::size_of::<arg_output>() - 40usize];
-    ["Alignment of arg_output"][::std::mem::align_of::<arg_output>() - 8usize];
+    ["Size of arg_output"][::std::mem::size_of::<arg_output>() - 12usize];
+    ["Alignment of arg_output"][::std::mem::align_of::<arg_output>() - 4usize];
     ["Offset of field: arg_output::val"][::std::mem::offset_of!(arg_output, val) - 0usize];
 };
 unsafe extern "C" {
@@ -44,4 +44,10 @@ unsafe extern "C" {
         data_size: ::std::os::raw::c_int,
         dst_struct: *mut arg_input,
     ) -> bool;
+}
+unsafe extern "C" {
+    pub fn mylibtorchinfer_alloc(
+        in_: *mut arg_input,
+        batch_size: ::std::os::raw::c_uint,
+    ) -> *mut arg_output;
 }

@@ -58,11 +58,23 @@ impl Default for arg_output {
 }
 
 async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
-    let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
+    // let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
+    // unsafe {
+    //     mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
+        
+    // }
+    // output
+
+
     unsafe {
-        mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
+        let output: *mut arg_output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
+        if output.is_null() {
+            eprintln!("C++ allocation failed or returned a null pointer.");
+            return Vec::new();
+        } else {
+            return Vec::from_raw_parts(output, input.len(), input.len());
+        }
     }
-    output
 }
 
 #[derive(serde::Serialize)]
