@@ -118,7 +118,7 @@ pub struct model_server {
     rx: tokio::sync::mpsc::Receiver<InferRequest>,
 }
 
-const MAX_BATCH: usize = 16;
+const MAX_BATCH: usize = SIZE_B as usize;
 const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
 
 impl model_server {

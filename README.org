@@ -473,6 +473,7 @@
   unsigned int constexpr IMAGE_RESOLUTION = 448;
   unsigned int constexpr NUM_CHANNELS = 3;
   unsigned int constexpr NUM_CLASSES = 3;
+  unsigned int constexpr SIZE_B = 16;
 
   unsigned int constexpr SIZE_Y = IMAGE_RESOLUTION;
   unsigned int constexpr SIZE_X = IMAGE_RESOLUTION;
@@ -1249,7 +1250,7 @@
 
 ***** Important configs
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  const MAX_BATCH: usize = 16;
+  const MAX_BATCH: usize = SIZE_B as usize;
   const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
 #+end_src
 
@@ -1567,7 +1568,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Fixed container names'
+      git commit -m 'Started moving main memory buffers to c++ side'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
