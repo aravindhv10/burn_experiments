@@ -1131,12 +1131,17 @@
           unsafe {
               tmp_ptr = tmp.as_mut_ptr();
               success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
-              if success {
-                  Ok(tmp.assume_init())
-              } else {
-                  println!("Decode failed, returning 0");
+          }
+
+          if success {
+              unsafe {
+                  return Ok(tmp.assume_init());
+              }
+          } else {
+              println!("Decode failed, returning 0");
+              let size_in_bytes = std::mem::size_of::<Self>();
+              unsafe {
                   let byte_ptr = tmp_ptr as *mut u8;
-                  let size_in_bytes = std::mem::size_of::<Self>();
                   std::ptr::write_bytes(byte_ptr, 0, size_in_bytes);
                   Err(tmp.assume_init())
               }
