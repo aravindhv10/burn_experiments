@@ -1268,10 +1268,10 @@
   impl model_server {
       pub async fn infer_loop(&mut self) {
           let mut images = Vec::with_capacity(MAX_BATCH);
-          let mut reply_channel = Vec::with_capacity(MAX_BATCH);
 
           while let Some(first) = self.rx.recv().await {
 
+              let mut reply_channel = Vec::with_capacity(MAX_BATCH);
               images.push(*(first.img));
               reply_channel.push(first.resp_tx);
 
