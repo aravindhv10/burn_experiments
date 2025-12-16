@@ -150,7 +150,7 @@ inline torch::TensorOptions get_host_input_device_and_dtype() {
 
 inline torch::TensorOptions get_host_output_device_and_dtype() {
   return torch::TensorOptions()
-      .dtype(torch::kInt64)
+      .dtype(get_tensor_dtype<outtype>())
       .device(torch::kCPU);
 }
 
