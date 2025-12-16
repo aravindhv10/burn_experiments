@@ -144,7 +144,7 @@ inline torch::TensorOptions get_good_device_and_dtype() {
 
 inline torch::TensorOptions get_host_input_device_and_dtype() {
   return torch::TensorOptions()
-      .dtype(torch::kUInt8)
+      .dtype(get_tensor_dtype<intype>())
       .device(torch::kCPU);
 }
 
