@@ -123,6 +123,14 @@ template <int64_t> inline torch::TensorOptions get_tensor_dtype() {
   return torch::kInt64;
 }
 
+template <float32_t> inline torch::TensorOptions get_tensor_dtype() {
+  return torch::kFloat32;
+}
+
+template <float64_t> inline torch::TensorOptions get_tensor_dtype() {
+  return torch::kFloat64;
+}
+
 inline torch::TensorOptions get_good_device_and_dtype() {
   if (torch::cuda::is_available()) {
     return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
@@ -132,11 +140,15 @@ inline torch::TensorOptions get_good_device_and_dtype() {
 }
 
 inline torch::TensorOptions get_host_input_device_and_dtype() {
-  return torch::TensorOptions().dtype(torch::kUInt8).device(torch::kCPU);
+  return torch::TensorOptions()
+      .dtype(get_tensor_dtype<intype>())
+      .device(torch::kCPU);
 }
 
 inline torch::TensorOptions get_host_output_device_and_dtype() {
-  return torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
+  return torch::TensorOptions()
+      .dtype(get_tensor_dtype<outtype>())
+      .device(torch::kCPU);
 }
 
 class infer_slave {
