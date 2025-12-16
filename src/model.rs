@@ -65,7 +65,7 @@ impl Default for arg_output {
     }
 }
 
-async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
+async fn run_inference(mut input: &Vec<arg_input>) -> Vec<arg_output> {
     // let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
     // unsafe {
     //     mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
@@ -152,7 +152,7 @@ impl model_server {
                 }
             }
 
-            let outputs = run_inference(images).await ;
+            let outputs = run_inference(&images).await ;
             images.clear();
             reply_channel.clear();
 
