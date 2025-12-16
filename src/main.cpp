@@ -195,12 +195,28 @@ public:
 infer_slave slave;
 
 extern "C" {
-  void mylibtorchinfer(arg_input *in, unsigned int const batch_size, arg_output *out) {slave(in,batch_size,out);}
-  bool decode_image_data(unsigned char *binary_data, int data_size, arg_input * dst_struct){
-    /*inline*/ cv::Mat ret = process_image_data(/*unsigned char *binary_data =*/ binary_data, /*int data_size =*/ data_size) ;
-    /*inline*/ bool res = convertMatToStruct(/*const cv::Mat& src_mat =*/ ret, /*arg_input& dst_struct =*/ *dst_struct) ;
-    return res;
-  }
+
+void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
+                     arg_output *out) {
+  slave(in, batch_size, out);
+}
+
+arg_output *mylibtorchinfer_alloc(arg_input *in,
+                                  unsigned int const batch_size) {
+  arg_output *out = new arg_output[batch_size];
+  slave(in, batch_size, out);
+  return out;
+}
+
+bool decode_image_data(unsigned char *binary_data, int data_size,
+                       arg_input *dst_struct) {
+  /*inline*/ cv::Mat ret =
+      process_image_data(/*unsigned char *binary_data =*/binary_data,
+                         /*int data_size =*/data_size);
+  /*inline*/ bool res = convertMatToStruct(
+      /*const cv::Mat& src_mat =*/ret, /*arg_input& dst_struct =*/*dst_struct);
+  return res;
+}
 }
 
 #endif
