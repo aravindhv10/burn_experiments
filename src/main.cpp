@@ -158,6 +158,7 @@ inline torch::TensorOptions get_host_output_device_and_dtype() {
 }
 
 class infer_slave {
+private:
   c10::InferenceMode mode;
   torch::inductor::AOTIModelPackageLoader loader;
   torch::TensorOptions options_compute;
@@ -168,6 +169,8 @@ class infer_slave {
   std::vector<torch::Tensor> outputs;
   torch::Tensor out_tensor;
   std::size_t bytes_to_copy;
+  arg_input buffer_input[SIZE_B];
+  arg_output buffer_output[SIZE_B];
 
 public:
   inline void operator()(arg_input *in, unsigned int const batch_size,
@@ -192,7 +195,7 @@ public:
   ~infer_slave() {}
 };
 
-infer_slave * slave = nullptr;
+infer_slave *slave = nullptr;
 
 extern "C" {
 

@@ -65,15 +65,17 @@ async fn run_inference(mut input: Vec<arg_input>) -> Vec<arg_output> {
     // }
     // output
 
+    let output: *mut arg_output;
 
     unsafe {
-        let output: *mut arg_output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
-        if output.is_null() {
-            eprintln!("C++ allocation failed or returned a null pointer.");
-            return Vec::new();
-        } else {
-            return Vec::from_raw_parts(output, input.len(), input.len());
-        }
+        output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
+    }
+    if output.is_null() {
+        eprintln!("C++ allocation failed or returned a null pointer.");
+        return Vec::new();
+    }
+    unsafe {
+        return Vec::from_raw_parts(output, input.len(), input.len());
     }
 }
 

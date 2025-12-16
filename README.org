@@ -498,6 +498,9 @@
                          arg_input *dst_struct);
 
   arg_output *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
+
+  arg_input *get_buffer_input();
+  arg_output *get_buffer_output();
   }
 
   #endif
@@ -771,6 +774,7 @@
   }
 
   class infer_slave {
+  private:
     c10::InferenceMode mode;
     torch::inductor::AOTIModelPackageLoader loader;
     torch::TensorOptions options_compute;
@@ -781,6 +785,8 @@
     std::vector<torch::Tensor> outputs;
     torch::Tensor out_tensor;
     std::size_t bytes_to_copy;
+    arg_input buffer_input[SIZE_B];
+    arg_output buffer_output[SIZE_B];
 
   public:
     inline void operator()(arg_input *in, unsigned int const batch_size,
@@ -805,7 +811,7 @@
     ~infer_slave() {}
   };
 
-  infer_slave * slave = nullptr;
+  infer_slave *slave = nullptr;
 #+end_src
 
 **** Actual interface implementation
@@ -1186,15 +1192,17 @@
       // }
       // output
 
+      let output: *mut arg_output;
 
       unsafe {
-          let output: *mut arg_output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
-          if output.is_null() {
-              eprintln!("C++ allocation failed or returned a null pointer.");
-              return Vec::new();
-          } else {
-              return Vec::from_raw_parts(output, input.len(), input.len());
-          }
+          output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
+      }
+      if output.is_null() {
+          eprintln!("C++ allocation failed or returned a null pointer.");
+          return Vec::new();
+      }
+      unsafe {
+          return Vec::from_raw_parts(output, input.len(), input.len());
       }
   }
 #+end_src
