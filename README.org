@@ -750,7 +750,7 @@
 
   inline torch::TensorOptions get_host_output_device_and_dtype() {
     return torch::TensorOptions()
-        .dtype(torch::Int64)
+        .dtype(torch::kInt64)
         .device(torch::kCPU);
   }
 
