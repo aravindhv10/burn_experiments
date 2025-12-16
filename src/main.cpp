@@ -195,29 +195,21 @@ public:
   ~infer_slave() {}
 };
 
-infer_slave *slave = nullptr;
+infer_slave slave;
 
 extern "C" {
 
 void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
                      arg_output *out) {
 
-  if (slave == nullptr) {
-    printf("Allocated slave\n");
-    slave = new infer_slave;
-  }
-  slave[0](in, batch_size, out);
+  slave(in, batch_size, out);
 }
 
 arg_output *mylibtorchinfer_alloc(arg_input *in,
                                   unsigned int const batch_size) {
 
   arg_output *out = new arg_output[batch_size];
-  if (slave == nullptr) {
-    printf("Allocated slave\n");
-    slave = new infer_slave;
-  }
-  slave[0](in, batch_size, out);
+  slave(in, batch_size, out);
   return out;
 }
 
