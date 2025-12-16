@@ -1274,9 +1274,10 @@
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
   impl model_server {
       pub async fn infer_loop(&mut self) {
+          let mut images = Vec::with_capacity(MAX_BATCH);
+          let mut reply_channel = Vec::with_capacity(MAX_BATCH);
+
           while let Some(first) = self.rx.recv().await {
-              let mut images = Vec::with_capacity(MAX_BATCH);
-              let mut reply_channel = Vec::with_capacity(MAX_BATCH);
 
               images.push(*(first.img));
               reply_channel.push(first.resp_tx);
@@ -1293,6 +1294,8 @@
               }
 
               let outputs = run_inference(images).await ;
+              images.clear();
+              reply_channel.clear();
 
               for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                   let _ = req.send(Ok(out));
@@ -1584,7 +1587,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Restored back to BSS section allocation'
+      git commit -m 'Trying more efficient use of vectors'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")

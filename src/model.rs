@@ -133,9 +133,10 @@ const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200)
 
 impl model_server {
     pub async fn infer_loop(&mut self) {
+        let mut images = Vec::with_capacity(MAX_BATCH);
+        let mut reply_channel = Vec::with_capacity(MAX_BATCH);
+
         while let Some(first) = self.rx.recv().await {
-            let mut images = Vec::with_capacity(MAX_BATCH);
-            let mut reply_channel = Vec::with_capacity(MAX_BATCH);
 
             images.push(*(first.img));
             reply_channel.push(first.resp_tx);
@@ -152,6 +153,8 @@ impl model_server {
             }
 
             let outputs = run_inference(images).await ;
+            images.clear();
+            reply_channel.clear();
 
             for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                 let _ = req.send(Ok(out));
