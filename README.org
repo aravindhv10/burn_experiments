@@ -1125,9 +1125,12 @@
 
       pub fn from(mut binary_image_data: Vec<u8>) -> Result<Box<Self>, Box<Self>>  {
           let mut tmp: Box<std::mem::MaybeUninit<Self>> = Box::new_uninit();
+          let tmp_ptr: *mut Self ;
+          let mut success: bool = false;
+
           unsafe {
-              let tmp_ptr: *mut Self = tmp.as_mut_ptr();
-              let success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
+              tmp_ptr = tmp.as_mut_ptr();
+              success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
               if success {
                   Ok(tmp.assume_init())
               } else {
