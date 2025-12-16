@@ -31,9 +31,6 @@ bool decode_image_data(unsigned char *binary_data, int data_size,
                        arg_input *dst_struct);
 
 arg_output *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
-
-arg_input *get_buffer_input();
-arg_output *get_buffer_output();
 }
 
 #endif

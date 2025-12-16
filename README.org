@@ -498,9 +498,6 @@
                          arg_input *dst_struct);
 
   arg_output *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
-
-  arg_input *get_buffer_input();
-  arg_output *get_buffer_output();
   }
 
   #endif
@@ -1184,23 +1181,19 @@
 
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  async fn run_inference(mut input: &Vec<arg_input>) -> Vec<arg_output> {
-      // let mut output: Vec<arg_output> = (0..input.len()).map(|_|{arg_output::new()}).collect(); 
-      // unsafe {
-      //     mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
-          
-      // }
-      // output
+  async fn run_inference(input: &mut Vec<arg_input>) -> Vec<arg_output> {
 
       let output: *mut arg_output;
 
       unsafe {
           output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
       }
+
       if output.is_null() {
           eprintln!("C++ allocation failed or returned a null pointer.");
           return Vec::new();
       }
+
       unsafe {
           return Vec::from_raw_parts(output, input.len(), input.len());
       }
@@ -1288,7 +1281,7 @@
                       Ok(req) => {
                           images.push(*(req.img));
                           reply_channel.push(req.resp_tx);
-                      } ,
+                      },
                       Err(_) => break,
                   }
               }
