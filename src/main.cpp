@@ -144,13 +144,13 @@ inline torch::TensorOptions get_good_device_and_dtype() {
 
 inline torch::TensorOptions get_host_input_device_and_dtype() {
   return torch::TensorOptions()
-      .dtype(get_tensor_dtype<intype>())
+      .dtype(torch::kUInt8)
       .device(torch::kCPU);
 }
 
 inline torch::TensorOptions get_host_output_device_and_dtype() {
   return torch::TensorOptions()
-      .dtype(get_tensor_dtype<outtype>())
+      .dtype(torch::Int64)
       .device(torch::kCPU);
 }
 
