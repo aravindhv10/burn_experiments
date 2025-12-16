@@ -1,3 +1,6 @@
+#ifndef _HEADER_GUARD_src_main_cpp
+#define _HEADER_GUARD_src_main_cpp
+
 #include "./main.hpp"
 
 inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
@@ -199,3 +202,5 @@ extern "C" {
     return res;
   }
 }
+
+#endif

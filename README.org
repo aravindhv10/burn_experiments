@@ -585,6 +585,12 @@
 
 *** Actual file
 
+**** Header guard start
+#+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
+  #ifndef _HEADER_GUARD_src_main_cpp
+  #define _HEADER_GUARD_src_main_cpp
+#+end_src
+
 **** Include header
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   #include "./main.hpp"
@@ -802,6 +808,11 @@
       return res;
     }
   }
+#+end_src
+
+**** Header guard end
+#+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
+  #endif
 #+end_src
 
 ** Include main function to test
