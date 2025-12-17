@@ -134,8 +134,9 @@ impl model_server {
         while let Some(first) = self.rx.recv().await {
 
             let mut reply_channel = Vec::with_capacity(MAX_BATCH);
-            images.push(*(first.img));
             reply_channel.push(first.resp_tx);
+
+            images.push(*(first.img));
 
             let start = tokio::time::Instant::now();
             while images.len() < MAX_BATCH && start.elapsed() < BATCH_TIMEOUT {
@@ -154,7 +155,6 @@ impl model_server {
             for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                 let _ = req.send(Ok(out));
             }
-            reply_channel.clear();
         }
     }
 }
