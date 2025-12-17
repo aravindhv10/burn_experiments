@@ -64,11 +64,17 @@ inline bool convertMatToStruct(const cv::Mat &src_mat, arg_input &dst_struct) {
   if (src_mat.isContinuous()) {
     constexpr size_t EXPECTED_SIZE_BYTES =
         SIZE_Y * SIZE_X * SIZE_C * sizeof(intype);
+
     const uint8_t *mat_data_ptr = src_mat.data;
+
     uint8_t *struct_data_ptr = reinterpret_cast<uint8_t *>(dst_struct.val);
+
     std::memcpy(struct_data_ptr, mat_data_ptr, EXPECTED_SIZE_BYTES);
+
   } else {
+
     constexpr size_t ROW_SIZE_BYTES = SIZE_X * SIZE_C * sizeof(intype);
+
     if (false) {
       for (int y = 0; y < SIZE_Y; ++y) {
         const uint8_t *src_row = src_mat.ptr<uint8_t>(y);
@@ -205,10 +211,10 @@ void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
   slave(in, batch_size, out);
 }
 
-arg_output *mylibtorchinfer_alloc(arg_input *in,
+arg_output const *mylibtorchinfer_alloc(arg_input *in,
                                   unsigned int const batch_size) {
 
-  arg_output *out = new arg_output[batch_size];
+  arg_output *out = slave.buffer_output;
   slave(in, batch_size, out);
   return out;
 }

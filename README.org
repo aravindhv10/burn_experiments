@@ -1,3 +1,19 @@
+* Architecture
+
+** C++
+
+*** OpenCV
+- Decode binary image data to arg_input array.
+- Memory management of binary data of image is on rust side.
+- arg_input memory location is handeled on rust side.
+
+*** Torch
+- For now, arg_input memory management is done on rust side.
+- Run inference on =device= using =libtorch=.
+- Return arg_output const * which rust should neither own nor free.
+
+** Rust
+
 * Scripts to manage
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
   . "${HOME}/important_functions.sh"
@@ -497,7 +513,7 @@
   bool decode_image_data(unsigned char *binary_data, int data_size,
                          arg_input *dst_struct);
 
-  arg_output *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
+  arg_output const *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
   }
 
   #endif
@@ -607,6 +623,8 @@
 #+end_src
 
 **** CV parts
+
+***** Decode binary data to cv::Mat with resizing, cropping and RGB_2_BGR
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
     cv::Mat decoded_img = cv::imdecode(
@@ -656,7 +674,10 @@
       return rgb_img;
     }
   }
+#+end_src
 
+***** Convert the cv::Mar to arg_input
+#+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   inline bool convertMatToStruct(const cv::Mat &src_mat, arg_input &dst_struct) {
     if (src_mat.rows != SIZE_Y || src_mat.cols != SIZE_X) {
       return false;
@@ -669,11 +690,17 @@
     if (src_mat.isContinuous()) {
       constexpr size_t EXPECTED_SIZE_BYTES =
           SIZE_Y * SIZE_X * SIZE_C * sizeof(intype);
+
       const uint8_t *mat_data_ptr = src_mat.data;
+
       uint8_t *struct_data_ptr = reinterpret_cast<uint8_t *>(dst_struct.val);
+
       std::memcpy(struct_data_ptr, mat_data_ptr, EXPECTED_SIZE_BYTES);
+
     } else {
+
       constexpr size_t ROW_SIZE_BYTES = SIZE_X * SIZE_C * sizeof(intype);
+
       if (false) {
         for (int y = 0; y < SIZE_Y; ++y) {
           const uint8_t *src_row = src_mat.ptr<uint8_t>(y);
@@ -748,7 +775,7 @@
   }
 #+end_src
 
-***** tosort
+***** Torch stuff
 #+begin_src c++ :mkdirp yes :tangle ./src/main.cpp
   inline torch::TensorOptions get_good_device_and_dtype() {
     if (torch::cuda::is_available()) {
@@ -821,10 +848,10 @@
     slave(in, batch_size, out);
   }
 
-  arg_output *mylibtorchinfer_alloc(arg_input *in,
+  arg_output const *mylibtorchinfer_alloc(arg_input *in,
                                     unsigned int const batch_size) {
 
-    arg_output *out = new arg_output[batch_size];
+    arg_output *out = slave.buffer_output;
     slave(in, batch_size, out);
     return out;
   }
@@ -1181,9 +1208,9 @@
 
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  async fn run_inference(input: &mut Vec<arg_input>) -> Vec<arg_output> {
+  fn run_inference(input: &mut Vec<arg_input>) -> &'static arg_output {
 
-      let output: *mut arg_output;
+      let output: *const arg_output;
 
       unsafe {
           output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
@@ -1191,11 +1218,11 @@
 
       if output.is_null() {
           eprintln!("C++ allocation failed or returned a null pointer.");
-          return Vec::new();
+          return &[];
       }
 
       unsafe {
-          return Vec::from_raw_parts(output, input.len(), input.len());
+          return std::slice::from_raw_parts(output, input.len());
       }
   }
 #+end_src
@@ -1287,13 +1314,12 @@
                   }
               }
 
-              let outputs = run_inference(&mut images).await ;
+              let outputs = run_inference(&mut images) ;
               images.clear();
 
-              for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
+              for (out, req) in outputs.iter().zip(reply_channel.into_iter()) {
                   let _ = req.send(Ok(out));
               }
-              eprintln!("Length of reply_channel is {}", reply_channel.len());
           }
       }
   }

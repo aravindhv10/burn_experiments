@@ -65,9 +65,9 @@ impl Default for arg_output {
     }
 }
 
-async fn run_inference(input: &mut Vec<arg_input>) -> Vec<arg_output> {
+fn run_inference(input: &mut Vec<arg_input>) -> &'static arg_output {
 
-    let output: *mut arg_output;
+    let output: *const arg_output;
 
     unsafe {
         output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
@@ -75,11 +75,11 @@ async fn run_inference(input: &mut Vec<arg_input>) -> Vec<arg_output> {
 
     if output.is_null() {
         eprintln!("C++ allocation failed or returned a null pointer.");
-        return Vec::new();
+        return &[];
     }
 
     unsafe {
-        return Vec::from_raw_parts(output, input.len(), input.len());
+        return std::slice::from_raw_parts(output, input.len());
     }
 }
 
@@ -149,13 +149,12 @@ impl model_server {
                 }
             }
 
-            let outputs = run_inference(&mut images).await ;
+            let outputs = run_inference(&mut images) ;
             images.clear();
 
-            for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
+            for (out, req) in outputs.iter().zip(reply_channel.into_iter()) {
                 let _ = req.send(Ok(out));
             }
-            eprintln!("Length of reply_channel is {}", reply_channel.len());
         }
     }
 }
