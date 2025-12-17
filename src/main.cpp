@@ -144,6 +144,7 @@ template <> inline auto get_tensor_dtype<float64_t>() {
 }
 
 inline torch::TensorOptions get_good_device_and_dtype() {
+  printf("get_good_device_and_dtype started\n");
   if (torch::cuda::is_available()) {
     return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
   } else {
@@ -152,12 +153,14 @@ inline torch::TensorOptions get_good_device_and_dtype() {
 }
 
 inline torch::TensorOptions get_host_input_device_and_dtype() {
+  printf("get_host_input_device_and_dtype started\n");
   return torch::TensorOptions()
       .dtype(get_tensor_dtype<intype>())
       .device(torch::kCPU);
 }
 
 inline torch::TensorOptions get_host_output_device_and_dtype() {
+  printf("get_host_output_device_and_dtype started\n");
   return torch::TensorOptions()
       .dtype(get_tensor_dtype<outtype>())
       .device(torch::kCPU);
@@ -193,7 +196,9 @@ public:
       : loader("/model.pt2"), options_compute(get_good_device_and_dtype()),
         options_host_input(get_host_input_device_and_dtype()),
         options_host_output(get_host_output_device_and_dtype()) {
+    printf("Started constructing...\n");
     inputs.resize(1);
+    printf("Done constructing...\n");
   }
 
   ~infer_slave() {}
