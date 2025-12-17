@@ -1,19 +1,3 @@
-* Architecture
-
-** C++
-
-*** OpenCV
-- Decode binary image data to arg_input array.
-- Memory management of binary data of image is on rust side.
-- arg_input memory location is handeled on rust side.
-
-*** Torch
-- For now, arg_input memory management is done on rust side.
-- Run inference on =device= using =libtorch=.
-- Return arg_output const * which rust should neither own nor free.
-
-** Rust
-
 * Scripts to manage
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
   . "${HOME}/important_functions.sh"
@@ -489,7 +473,6 @@
   unsigned int constexpr IMAGE_RESOLUTION = 448;
   unsigned int constexpr NUM_CHANNELS = 3;
   unsigned int constexpr NUM_CLASSES = 3;
-  unsigned int constexpr SIZE_B = 16;
 
   unsigned int constexpr SIZE_Y = IMAGE_RESOLUTION;
   unsigned int constexpr SIZE_X = IMAGE_RESOLUTION;
@@ -512,8 +495,6 @@
 
   bool decode_image_data(unsigned char *binary_data, int data_size,
                          arg_input *dst_struct);
-
-  arg_output const *mylibtorchinfer_alloc(arg_input *in, unsigned int const batch_size);
   }
 
   #endif
@@ -809,9 +790,6 @@
     std::vector<torch::Tensor> outputs;
     torch::Tensor out_tensor;
     std::size_t bytes_to_copy;
-  public:
-    arg_input buffer_input[SIZE_B];
-    arg_output buffer_output[SIZE_B];
 
   public:
     inline void operator()(arg_input *in, unsigned int const batch_size,
@@ -847,14 +825,6 @@
                        arg_output *out) {
 
     slave(in, batch_size, out);
-  }
-
-  arg_output const *mylibtorchinfer_alloc(arg_input *in,
-                                    unsigned int const batch_size) {
-
-    arg_output *out = slave.buffer_output;
-    slave(in, batch_size, out);
-    return out;
   }
 
   bool decode_image_data(unsigned char *binary_data, int data_size,
@@ -1209,22 +1179,16 @@
 
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  fn run_inference(input: &mut Vec<arg_input>) -> &'static [arg_output] {
+  fn run_inference(input: &mut Vec<arg_input>) -> Vec<arg_output> {
 
-      let output: *const arg_output;
-
-      unsafe {
-          output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
-      }
-
-      if output.is_null() {
-          eprintln!("C++ allocation failed or returned a null pointer.");
-          return &[];
-      }
+      let mut output = Vec::<arg_output>::with_capacity(input.len());
 
       unsafe {
-          return std::slice::from_raw_parts(output, input.len());
+          mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
+          output.set_len(input.len())
       }
+
+      return output
   }
 #+end_src
 
@@ -1318,7 +1282,7 @@
               let outputs = run_inference(&mut images) ;
               images.clear();
 
-              for (out, req) in outputs.iter().zip(reply_channel.into_iter()) {
+              for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                   let _ = req.send(Ok(out));
               }
           }

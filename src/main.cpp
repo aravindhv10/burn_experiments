@@ -175,9 +175,6 @@ private:
   std::vector<torch::Tensor> outputs;
   torch::Tensor out_tensor;
   std::size_t bytes_to_copy;
-public:
-  arg_input buffer_input[SIZE_B];
-  arg_output buffer_output[SIZE_B];
 
 public:
   inline void operator()(arg_input *in, unsigned int const batch_size,
@@ -210,14 +207,6 @@ void mylibtorchinfer(arg_input *in, unsigned int const batch_size,
                      arg_output *out) {
 
   slave(in, batch_size, out);
-}
-
-arg_output const *mylibtorchinfer_alloc(arg_input *in,
-                                  unsigned int const batch_size) {
-
-  arg_output *out = slave.buffer_output;
-  slave(in, batch_size, out);
-  return out;
 }
 
 bool decode_image_data(unsigned char *binary_data, int data_size,

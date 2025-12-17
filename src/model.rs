@@ -65,22 +65,16 @@ impl Default for arg_output {
     }
 }
 
-fn run_inference(input: &mut Vec<arg_input>) -> &'static [arg_output] {
+fn run_inference(input: &mut Vec<arg_input>) -> Vec<arg_output> {
 
-    let output: *const arg_output;
-
-    unsafe {
-        output = mylibtorchinfer_alloc(input.as_mut_ptr(), input.len() as u32);
-    }
-
-    if output.is_null() {
-        eprintln!("C++ allocation failed or returned a null pointer.");
-        return &[];
-    }
+    let mut output = Vec::<arg_output>::with_capacity(input.len());
 
     unsafe {
-        return std::slice::from_raw_parts(output, input.len());
+        mylibtorchinfer(input.as_mut_ptr(), input.len() as u32, output.as_mut_ptr());
+        output.set_len(input.len())
     }
+
+    return output
 }
 
 #[derive(serde::Serialize)]
@@ -152,7 +146,7 @@ impl model_server {
             let outputs = run_inference(&mut images) ;
             images.clear();
 
-            for (out, req) in outputs.iter().zip(reply_channel.into_iter()) {
+            for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                 let _ = req.send(Ok(out));
             }
         }
