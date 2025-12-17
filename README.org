@@ -966,15 +966,27 @@
   actix-web = "4.11.0"
 #+end_src
 
-**** tosort
+**** GRPC Related
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
-  futures-util = "0.3.31"
-  image = { version = "0.25.6", features = ["serde", "nasm"] }
   prost = "0.14"
-  serde = { version = "1.0.219", features = ["derive"] }
-  tokio = { version = "1.47.1", features = ["full"] }
   tonic-prost = "*"
   tonic = { version = "0.14.2", features = ["zstd"] }
+#+end_src
+
+**** Async
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  futures-util = "0.3.31"
+  tokio = { version = "1.47.1", features = ["full"] }
+#+end_src
+
+**** Serialization
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  serde = { version = "1.0.219", features = ["derive"] }
+#+end_src
+
+**** Image processing
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  image = { version = "0.25.6", features = ["serde", "nasm"] }
 #+end_src
 
 **** Memory allocator
