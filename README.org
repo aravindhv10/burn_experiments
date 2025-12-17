@@ -1351,8 +1351,8 @@
 
 **** Fixed
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
-  #[global_allocator]
-  static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
+  // #[global_allocator]
+  // static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
 
   mod model;
   mod mylib;
