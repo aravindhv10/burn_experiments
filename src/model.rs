@@ -13,7 +13,6 @@ impl arg_input {
         let mut success: bool = false;
 
         unsafe {
-            // tmp_ptr = tmp.as_mut_ptr();
             success = decode_image_data(binary_image_data.as_mut_ptr(), binary_image_data.len().try_into().unwrap(), tmp_ptr);
         }
 
@@ -24,7 +23,6 @@ impl arg_input {
         } else {
             println!("Decode failed, returning 0");
             let size_in_bytes = std::mem::size_of::<Self>();
-            // let byte_ptr = tmp_ptr as *mut u8;
             unsafe {
                 std::ptr::write_bytes(tmp_ptr as *mut u8, 0, size_in_bytes);
                 Err(tmp.assume_init())
