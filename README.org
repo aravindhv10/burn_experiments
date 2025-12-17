@@ -991,7 +991,7 @@
 
 **** Memory allocator
 
-***** COMMENT rpmalloc
+***** rpmalloc
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
 #+end_src
@@ -1001,7 +1001,7 @@
   tikv-jemallocator = "0.6.1"
 #+end_src
 
-***** mimalloc
+***** COMMENT mimalloc
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   mimalloc = "0.1.48"
 #+end_src
