@@ -3,7 +3,7 @@ include!("export.rs");
 impl arg_input {
     pub fn new() -> Self {
         arg_input {
-            val: [[[0 as u8; SIZE_C as  usize]; SIZE_X as usize]; SIZE_X as usize],
+            val: [[[0 as intype; SIZE_C as  usize]; SIZE_X as usize]; SIZE_X as usize],
         }
     }
 
