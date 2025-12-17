@@ -45,7 +45,7 @@ impl arg_output {
 
     pub fn new() -> Self {
         arg_output {
-            val: [0.0; SIZE_O as usize],
+            val: [0 as outtype; SIZE_O as usize],
         }
     }
 
@@ -171,7 +171,7 @@ impl model_client {
             Err(E) => {println!("Failed to decode image, using blind 0s");E}
         } ;
 
-        match self.tx.send(InferRequest{ img: img, resp_tx: resp_tx}).await {
+        match self.tx.send(InferRequest{img: img, resp_tx: resp_tx}).await {
             Ok(_) => match resp_rx.await {
                 Ok(Ok(pred)) => {
                     return Ok(pred);
