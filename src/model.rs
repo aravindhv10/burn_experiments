@@ -155,6 +155,7 @@ impl model_server {
             for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                 let _ = req.send(Ok(out));
             }
+            eprintln!("Length of reply_channel is {}", reply_channel.len());
         }
     }
 }
