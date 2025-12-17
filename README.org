@@ -991,7 +991,7 @@
 
 **** Memory allocator
 
-***** rpmalloc
+***** COMMENT rpmalloc
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
 #+end_src
@@ -1001,7 +1001,7 @@
   tikv-jemallocator = "0.6.1"
 #+end_src
 
-***** COMMENT mimalloc
+***** mimalloc
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   mimalloc = "0.1.48"
 #+end_src
@@ -1392,7 +1392,7 @@
 
 **** Change default allocator
 
-***** COMMENT mimalloc
+***** mimalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   use mimalloc::MiMalloc;
 
@@ -1410,7 +1410,7 @@
   static GLOBAL: Jemalloc = Jemalloc;
 #+end_src
 
-***** rpmalloc
+***** COMMENT rpmalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   use rpmalloc::RpMalloc;
 
@@ -1641,7 +1641,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Try rpmalloc again'
+      git commit -m 'Finally settle on mimalloc'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")

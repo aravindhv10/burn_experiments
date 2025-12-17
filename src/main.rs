@@ -1,7 +1,7 @@
-use rpmalloc::RpMalloc;
+use mimalloc::MiMalloc;
 
 #[global_allocator]
-static ALLOC: RpMalloc = RpMalloc;
+static GLOBAL: MiMalloc = MiMalloc;
 
 mod model;
 mod mylib;
