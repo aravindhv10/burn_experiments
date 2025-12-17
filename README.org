@@ -1251,7 +1251,7 @@
 
 ***** Important configs
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  const MAX_BATCH: usize = SIZE_B as usize;
+  const MAX_BATCH: usize = 16 as usize;
   const BATCH_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
 #+end_src
 
