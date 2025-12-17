@@ -958,8 +958,16 @@
 *** List of dependencies
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   [dependencies]
+#+end_src
+
+**** Actix
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   actix-multipart = "0.7.2"
   actix-web = "4.11.0"
+#+end_src
+
+**** tosort
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   futures-util = "0.3.31"
   image = { version = "0.25.6", features = ["serde", "nasm"] }
   prost = "0.14"
@@ -967,8 +975,18 @@
   tokio = { version = "1.47.1", features = ["full"] }
   tonic-prost = "*"
   tonic = { version = "0.14.2", features = ["zstd"] }
+#+end_src
+
+**** Memory allocator
+
+***** rpmalloc
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
+#+end_src
+
+***** COMMENT jemalloc
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
   tikv-jemallocator = "0.5"
-  # rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
 #+end_src
 
 * proto file
@@ -1357,17 +1375,17 @@
 
 **** Change default allocator
 
-***** Jemalloc
+***** COMMENT Jemalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
+  #[cfg(not(target_env = "msvc"))]
+  use tikv_jemallocator::Jemalloc;
 
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+  #[cfg(not(target_env = "msvc"))]
+  #[global_allocator]
+  static GLOBAL: Jemalloc = Jemalloc;
 #+end_src
 
-***** COMMENT rpmalloc
+***** rpmalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[global_allocator]
   static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
@@ -1381,6 +1399,8 @@ static GLOBAL: Jemalloc = Jemalloc;
 #+end_src
 
 **** Main functions
+
+***** Actix
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   async fn infer_handler(
       mut payload: actix_multipart::Multipart,
@@ -1408,7 +1428,10 @@ static GLOBAL: Jemalloc = Jemalloc;
           },
       }
   }
+#+end_src
 
+***** Tonic
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
   pub mod infer {
       tonic::include_proto!("infer");
   }
@@ -1591,7 +1614,7 @@ static GLOBAL: Jemalloc = Jemalloc;
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Trying with jemalloc'
+      git commit -m 'More memory allocator experiments'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
