@@ -1,3 +1,6 @@
+#[global_allocator]
+static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
+
 mod model;
 mod mylib;
 
