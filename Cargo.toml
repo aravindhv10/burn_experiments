@@ -39,4 +39,4 @@ serde = { version = "1.0.219", features = ["derive"] }
 
 image = { version = "0.25.6", features = ["serde", "nasm"] }
 
-tikv-jemallocator = "0.5"
+mimalloc = "0.1.48"

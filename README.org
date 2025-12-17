@@ -996,9 +996,14 @@
   rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
 #+end_src
 
-***** jemalloc
+***** COMMENT jemalloc
 #+begin_src toml :mkdirp yes :tangle ./Cargo.toml
-  tikv-jemallocator = "0.5"
+  tikv-jemallocator = "0.6.1"
+#+end_src
+
+***** mimalloc
+#+begin_src toml :mkdirp yes :tangle ./Cargo.toml
+  mimalloc = "0.1.48"
 #+end_src
 
 * proto file
@@ -1387,7 +1392,15 @@
 
 **** Change default allocator
 
-***** Jemalloc
+***** mimalloc
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
+  use mimalloc::MiMalloc;
+
+  #[global_allocator]
+  static GLOBAL: MiMalloc = MiMalloc;
+#+end_src
+
+***** COMMENT Jemalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[cfg(not(target_env = "msvc"))]
   use tikv_jemallocator::Jemalloc;
@@ -1626,7 +1639,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'rpmalloc is a disaster'
+      git commit -m 'Try mimalloc'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
