@@ -44,6 +44,42 @@
   exit '0'
 #+end_src
 
+* Code to export to tensorrt
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.py
+  import torch
+  import torch_tensorrt
+
+  res = torch.export.load("./export.pt2")
+  # 1. Define and prepare your model and example inputs
+  model = res.module()
+  example_inputs = [
+      torch.randn(
+          list(res.example_inputs[0][0].size()),
+          dtype=torch.bfloat16,
+          device="cuda",
+      )
+  ]
+  # example_inputs = res._example_inputs[0][0].cuda()
+  compile_settings = {
+      "inputs": example_inputs,
+      "enabled_precision": {torch.bfloat16},  # or torch.float32
+      "ir": "dynamo",  # use the dynamo IR path
+      # ... other settings
+  }
+
+  # 2. Compile the model with Torch-TensorRT
+  trt_gm = torch_tensorrt.compile(model, **compile_settings)
+
+  # 3. Save the compiled model using AOTInductor format
+  torch_tensorrt.save(
+      trt_gm,
+      file_path="model_trt.pt2",
+      output_format="aot_inductor",
+      retrace=True,
+      arg_inputs=example_inputs,
+  )
+#+end_src
+
 * Python file to produce the model file
 
 ** Produce the model
@@ -1635,7 +1671,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'More movement from unsafe to safe'
+      git commit -m 'Wrote torch to tensorrt compilation scripts'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
