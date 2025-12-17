@@ -151,7 +151,7 @@ impl model_server {
             let outputs = run_inference(&mut images).await ;
             images.clear();
 
-            for (out, req) in outputs.into_iter().zip(reply_channel.iter()) {
+            for (out, req) in outputs.into_iter().zip(reply_channel.into_iter()) {
                 let _ = req.send(Ok(out));
             }
             reply_channel.clear();
