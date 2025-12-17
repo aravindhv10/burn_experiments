@@ -1,4 +1,4 @@
-use mimalloc::MiMalloc;
+use rpmalloc::RpMalloc;
 
 #[global_allocator]
 static ALLOC: RpMalloc = RpMalloc;
