@@ -1,5 +1,9 @@
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
 #[global_allocator]
-static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
+static GLOBAL: Jemalloc = Jemalloc;
 
 mod model;
 mod mylib;
