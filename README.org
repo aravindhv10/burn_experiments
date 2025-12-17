@@ -962,7 +962,8 @@
   tokio = { version = "1.47.1", features = ["full"] }
   tonic-prost = "*"
   tonic = { version = "0.14.2", features = ["zstd"] }
-  rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
+  rpmalloc = { version = "0.2.2" }
+  # rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
 #+end_src
 
 * proto file
