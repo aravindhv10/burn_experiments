@@ -1392,7 +1392,7 @@
 
 **** Change default allocator
 
-***** mimalloc
+***** COMMENT mimalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   use mimalloc::MiMalloc;
 
@@ -1410,10 +1410,12 @@
   static GLOBAL: Jemalloc = Jemalloc;
 #+end_src
 
-***** COMMENT rpmalloc
+***** rpmalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
+  use mimalloc::MiMalloc;
+
   #[global_allocator]
-  static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
+  static ALLOC: RpMalloc = RpMalloc;
 #+end_src
 
 **** use lines
@@ -1639,7 +1641,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Try mimalloc'
+      git commit -m 'Try rpmalloc again'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
