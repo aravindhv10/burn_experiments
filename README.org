@@ -968,6 +968,7 @@
   tonic-prost = "*"
   tonic = { version = "0.14.2", features = ["zstd"] }
   rpmalloc = { version = "0.2.2" }
+  tikv-jemallocator = "0.5"
   # rpmalloc = { version = "0.2.2", features = ["adaptive_thread_cache", "global_cache", "thread_cache"] }
 #+end_src
 
@@ -1355,16 +1356,33 @@
 
 *** Main code
 
-**** Fixed
+**** Change default allocator
+
+***** Jemalloc
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+#+end_src
+
+***** COMMENT rpmalloc
 #+begin_src rust :mkdirp yes :tangle ./src/main.rs
   #[global_allocator]
   static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
+#+end_src
 
+**** use lines
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
   mod model;
   mod mylib;
-
   use futures_util::TryStreamExt;
+#+end_src
 
+**** Main functions
+#+begin_src rust :mkdirp yes :tangle ./src/main.rs
   async fn infer_handler(
       mut payload: actix_multipart::Multipart,
       infer_slave: actix_web::web::Data<std::sync::Arc<model::model_client>>,
@@ -1574,7 +1592,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Replaced the global memory allocator to rpmalloc'
+      git commit -m 'Trying with jemalloc'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
