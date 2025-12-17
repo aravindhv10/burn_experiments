@@ -24,9 +24,9 @@ impl arg_input {
         } else {
             println!("Decode failed, returning 0");
             let size_in_bytes = std::mem::size_of::<Self>();
-            let byte_ptr = tmp_ptr as *mut u8;
+            // let byte_ptr = tmp_ptr as *mut u8;
             unsafe {
-                std::ptr::write_bytes(byte_ptr, 0, size_in_bytes);
+                std::ptr::write_bytes(tmp_ptr as *mut u8, 0, size_in_bytes);
                 Err(tmp.assume_init())
             }
         }
