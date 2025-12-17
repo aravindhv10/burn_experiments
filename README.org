@@ -1209,7 +1209,7 @@
 
 **** Main inference function
 #+begin_src rust :mkdirp yes :tangle ./src/model.rs
-  fn run_inference(input: &mut Vec<arg_input>) -> &'static arg_output {
+  fn run_inference(input: &mut Vec<arg_input>) -> &'static [arg_output] {
 
       let output: *const arg_output;
 

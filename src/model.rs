@@ -65,7 +65,7 @@ impl Default for arg_output {
     }
 }
 
-fn run_inference(input: &mut Vec<arg_input>) -> &'static arg_output {
+fn run_inference(input: &mut Vec<arg_input>) -> &'static [arg_output] {
 
     let output: *const arg_output;
 
