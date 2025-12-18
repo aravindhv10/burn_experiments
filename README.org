@@ -453,11 +453,16 @@
 
 ** Actual file
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile.py
-  from main import compile_model_to_aot_inductor
+  from main import produce_model_ep
+  from compile_2_trt import compile_EP_2_optimized_targer
   import sys
 
   if __name__ == "__main__":
-      compile_model_to_aot_inductor(sys.argv[1], sys.argv[2])
+      produce_model_ep(path_file_output_model_ep=sys.argv[1])
+      compile_EP_2_optimized_targer(
+          path_file_input_EP_pt2=sys.argv[1],
+          path_file_output_compiled_pt2=sys.argv[2],
+      )
 #+end_src
 
 * Dockerfile to produce single self contained image
@@ -478,6 +483,7 @@
   COPY './build.rs' '/root/source/build.rs'
   COPY './compile.py' '/root/source/compile.py'
   COPY './compile.sh' '/root/source/compile.sh'
+  COPY './compile_2_trt.py' '/root/source/compile_2_trt.py'
   COPY './curl.sh' '/root/curl.sh'
   COPY './infer.proto' '/root/source/infer.proto'
   COPY './infer.sh' '/root/infer.sh'
@@ -1796,8 +1802,13 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Mostly done implementing optimized compilation code'
+      git commit -m 'Added python files to compile'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
 #+end_src
+
+
+'./compile_2_trt.py'
+'./main.py'
+'./compile.py'
