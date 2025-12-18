@@ -54,12 +54,22 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
         "ir": "dynamo",
     }
     trt_gm = torch_tensorrt.compile(model, **compile_settings)
+    example_input = torch.randn(
+        [
+            8,
+            original_shape[1],
+            original_shape[2],
+            original_shape[3],
+        ],
+        dtype=torch.bfloat16,
+        device="cuda",
+    )
     torch_tensorrt.save(
         trt_gm,
         file_path=path_file_output_trt_pt2,
         output_format="aot_inductor",
         retrace=True,
-        arg_inputs=x,
+        arg_inputs=[example_input],
     )
 
 
