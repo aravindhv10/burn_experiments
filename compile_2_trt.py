@@ -71,10 +71,12 @@ def compile_EP_to_AOTI(
     )
     dynamic_shapes = {
         "x": list(
-            torch.export.dynamic_shapes.Dim.DYNAMIC,
-            torch.export.dynamic_shapes.Dim.STATIC,
-            torch.export.dynamic_shapes.Dim.STATIC,
-            torch.export.dynamic_shapes.Dim.STATIC,
+            (
+                torch.export.dynamic_shapes.Dim.DYNAMIC,
+                torch.export.dynamic_shapes.Dim.STATIC,
+                torch.export.dynamic_shapes.Dim.STATIC,
+                torch.export.dynamic_shapes.Dim.STATIC,
+            )
         ),
     }
     exported_program = torch.export.export(
