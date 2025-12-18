@@ -44,14 +44,148 @@
   exit '0'
 #+end_src
 
-* Code to export to tensorrt
-#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.py
-  import torch
-  import torch_tensorrt
+* Code to compile torch export artifacts
 
-  res = torch.export.load("./export.pt2")
-  # 1. Define and prepare your model and example inputs
+** Unify the files and add to git
+#+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
+PREPARE_PYTHON_FILE 'compile_2_trt'
+#+end_src
+
+** Actual python code
+
+*** Try importing torch_tensorrt
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.config.py
+  try:
+      import torch_tensorrt
+
+      HAVE_TRT = True
+  except:
+      HAVE_TRT = False
+#+end_src
+
+*** compile_2_trt.import.py
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.import.py
+  import sys
+  import torch
+#+end_src
+
+*** Function to compile
+
+**** To tensorrt
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.function.py
+  def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
+      print('Inside the TRT function')
+
+      ep = torch.export.load(path_file_input_EP_pt2)
+
+      model = ep.module()
+
+      x = [
+          torch.randn(
+              list(ep.example_inputs[0][0].size()),
+              dtype=torch.bfloat16,
+              device="cuda",
+          )
+      ]
+
+      compile_settings = {
+          "inputs": x,
+          "enabled_precision": {torch.bfloat16},
+          "ir": "dynamo",
+      }
+
+      trt_gm = torch_tensorrt.compile(model, **compile_settings)
+
+      torch_tensorrt.save(
+          trt_gm,
+          file_path=path_file_output_trt_pt2,
+          output_format="aot_inductor",
+          retrace=True,
+          arg_inputs=x,
+      )
+#+end_src
+
+**** To AOT Inductor
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.function.py
+  def compile_EP_to_AOTI(
+      path_file_input_EP_pt2,
+      path_file_output_AOTI_pt2,
+  ):
+      print('Inside the AOTI function')
+
+      device = "cpu"
+      dtype = torch.bfloat16
+      inductor_configs = {}
+
+      if torch.cuda.is_available():
+          device = "cuda"
+          inductor_configs["max_autotune"] = True
+
+      ep = torch.export.load(path_file_input_EP_pt2)
+
+      model = ep.module()
+
+      model.eval()
+
+      model = model.to(
+          device=device,
+          dtype=dtype,
+      )
+
+      x = [
+          torch.randn(
+              list(ep.example_inputs[0][0].size()),
+              dtype=dtype,
+              device=device,
+          )
+      ]
+
+      dynamic_shapes = {
+          "x": (
+              torch.export.dynamic_shapes.Dim.DYNAMIC,
+              torch.export.dynamic_shapes.Dim.STATIC,
+              torch.export.dynamic_shapes.Dim.STATIC,
+              torch.export.dynamic_shapes.Dim.STATIC,
+          ),
+      }
+
+      exported_program = torch.export.export(
+          model,
+          (x,),
+          dynamic_shapes=dynamic_shapes,
+          strict=True,
+      )
+
+      path = torch._inductor.aoti_compile_and_package(
+          exported_program,
+          package_path=path_file_output_AOTI_pt2,
+          inductor_configs=inductor_configs,
+      )
+#+end_src
+
+*** COMMENT compile_2_trt.class.py
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.class.py
+#+end_src
+
+*** Call the right compilation functions
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.execute.py
+  if HAVE_TRT:
+      compile_EP_to_tensorrt(
+          path_file_input_EP_pt2=sys.argv[1],
+          path_file_output_trt_pt2=sys.argv[2],
+      )
+  else:
+      compile_EP_to_AOTI(
+          path_file_input_EP_pt2=sys.argv[1],
+          path_file_output_AOTI_pt2=sys.argv[2],
+      )
+#+end_src
+
+*** compile_2_trt.execute.py
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.execute.py
+  res = torch.export.load(sys.argv[1])
   model = res.module()
+  # 1. Define and prepare your model and example inputs
   example_inputs = [
       torch.randn(
           list(res.example_inputs[0][0].size()),
@@ -1671,7 +1805,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Wrote torch to tensorrt compilation scripts'
+      git commit -m 'Started writing code for trt and aoti compilers streamlining'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
