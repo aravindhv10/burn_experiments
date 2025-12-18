@@ -43,3 +43,5 @@ RUN \
     && install --compare  "${CARGO_TARGET_DIR}/release/infer-server" '/usr/bin/infer-server' \
     && install --compare  "${CARGO_TARGET_DIR}/release/infer-client" '/usr/bin/infer-client' \
     && echo 'DONE Compiling rust parts' ;
+
+RUN '/root/source/main.py' '/root/source/model.ckpt'
