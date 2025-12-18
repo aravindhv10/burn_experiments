@@ -165,3 +165,7 @@ class model_wrapper(torch.nn.Module):
     ################################################################
     ## Init related functions END ##################################
     ################################################################
+
+
+if __name__ == "__main__":
+    produce_model_ep(path_file_output_model_ep=sys.argv[1])

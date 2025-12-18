@@ -53,6 +53,21 @@
 
 ** Actual python code
 
+*** config the import paths
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.config.py
+  import os
+
+  try:
+      __file__
+  except:
+      basepath = "."
+  else:
+      basepath = os.path.abspath(os.path.dirname(__file__) + "/")
+  import sys
+
+  sys.path.append(basepath)
+#+end_src
+
 *** Try importing torch_tensorrt
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.config.py
   try:
@@ -65,7 +80,6 @@
 
 *** compile_2_trt.import.py
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.import.py
-  import sys
   import torch
 #+end_src
 
@@ -394,8 +408,8 @@
 
 *** COMMENT function to test if it works
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
-  def test_model(path_file_in):
-      dtype=torch.bfloat16
+  def test_model(path_file_input_model):
+      dtype = torch.bfloat16
       if torch.cuda.is_available():
           device = "cuda"
       else:
@@ -424,10 +438,10 @@
       produce_model(path_file_out=path_file_output)
 #+end_src
 
-*** COMMENT execute
+*** execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
-  produce_model(path_file_out=sys.argv[1])
-  test_model(path_file_in=sys.argv[1])
+  if __name__ == '__main__':
+      produce_model_ep(path_file_output_model_ep=sys.argv[1])
 #+end_src
 
 * Python program to export the model
