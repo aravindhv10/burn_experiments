@@ -81,40 +81,24 @@ def compile_EP_to_AOTI(
     )
 
 
-if HAVE_TRT:
-    compile_EP_to_tensorrt(
+def compile_EP_2_optimized_targer(
+    path_file_input_EP_pt2,
+    path_file_output_compiled_pt2,
+):
+    if HAVE_TRT:
+        compile_EP_to_tensorrt(
+            path_file_input_EP_pt2=path_file_input_EP_pt2,
+            path_file_output_trt_pt2=path_file_output_compiled_pt2,
+        )
+    else:
+        compile_EP_to_AOTI(
+            path_file_input_EP_pt2=path_file_input_EP_pt2,
+            path_file_output_AOTI_pt2=path_file_output_compiled_pt2,
+        )
+
+
+if __name__ == "__main__":
+    compile_EP_2_optimized_targer(
         path_file_input_EP_pt2=sys.argv[1],
-        path_file_output_trt_pt2=sys.argv[2],
+        path_file_output_compiled_pt2=sys.argv[2],
     )
-else:
-    compile_EP_to_AOTI(
-        path_file_input_EP_pt2=sys.argv[1],
-        path_file_output_AOTI_pt2=sys.argv[2],
-    )
-res = torch.export.load(sys.argv[1])
-model = res.module()
-# 1. Define and prepare your model and example inputs
-example_inputs = [
-    torch.randn(
-        list(res.example_inputs[0][0].size()),
-        dtype=torch.bfloat16,
-        device="cuda",
-    )
-]
-# example_inputs = res._example_inputs[0][0].cuda()
-compile_settings = {
-    "inputs": example_inputs,
-    "enabled_precision": {torch.bfloat16},  # or torch.float32
-    "ir": "dynamo",  # use the dynamo IR path
-    # ... other settings
-}
-# 2. Compile the model with Torch-TensorRT
-trt_gm = torch_tensorrt.compile(model, **compile_settings)
-# 3. Save the compiled model using AOTInductor format
-torch_tensorrt.save(
-    trt_gm,
-    file_path="model_trt.pt2",
-    output_format="aot_inductor",
-    retrace=True,
-    arg_inputs=example_inputs,
-)

@@ -48,7 +48,7 @@
 
 ** Unify the files and add to git
 #+begin_src sh :shebang #!/bin/sh :results output :tangle ./.git.sh
-PREPARE_PYTHON_FILE 'compile_2_trt'
+  PREPARE_PYTHON_FILE 'compile_2_trt'
 #+end_src
 
 ** Actual python code
@@ -163,55 +163,31 @@ PREPARE_PYTHON_FILE 'compile_2_trt'
       )
 #+end_src
 
-*** COMMENT compile_2_trt.class.py
-#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.class.py
+**** Wrapper to run the correct compiling function
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.function.py
+  def compile_EP_2_optimized_targer(
+      path_file_input_EP_pt2,
+      path_file_output_compiled_pt2,
+  ):
+      if HAVE_TRT:
+          compile_EP_to_tensorrt(
+              path_file_input_EP_pt2=path_file_input_EP_pt2,
+              path_file_output_trt_pt2=path_file_output_compiled_pt2,
+          )
+      else:
+          compile_EP_to_AOTI(
+              path_file_input_EP_pt2=path_file_input_EP_pt2,
+              path_file_output_AOTI_pt2=path_file_output_compiled_pt2,
+          )
 #+end_src
 
 *** Call the right compilation functions
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.execute.py
-  if HAVE_TRT:
-      compile_EP_to_tensorrt(
+  if __name__ == "__main__":
+      compile_EP_2_optimized_targer(
           path_file_input_EP_pt2=sys.argv[1],
-          path_file_output_trt_pt2=sys.argv[2],
+          path_file_output_compiled_pt2=sys.argv[2],
       )
-  else:
-      compile_EP_to_AOTI(
-          path_file_input_EP_pt2=sys.argv[1],
-          path_file_output_AOTI_pt2=sys.argv[2],
-      )
-#+end_src
-
-*** compile_2_trt.execute.py
-#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.execute.py
-  res = torch.export.load(sys.argv[1])
-  model = res.module()
-  # 1. Define and prepare your model and example inputs
-  example_inputs = [
-      torch.randn(
-          list(res.example_inputs[0][0].size()),
-          dtype=torch.bfloat16,
-          device="cuda",
-      )
-  ]
-  # example_inputs = res._example_inputs[0][0].cuda()
-  compile_settings = {
-      "inputs": example_inputs,
-      "enabled_precision": {torch.bfloat16},  # or torch.float32
-      "ir": "dynamo",  # use the dynamo IR path
-      # ... other settings
-  }
-
-  # 2. Compile the model with Torch-TensorRT
-  trt_gm = torch_tensorrt.compile(model, **compile_settings)
-
-  # 3. Save the compiled model using AOTInductor format
-  torch_tensorrt.save(
-      trt_gm,
-      file_path="model_trt.pt2",
-      output_format="aot_inductor",
-      retrace=True,
-      arg_inputs=example_inputs,
-  )
 #+end_src
 
 * Python file to produce the model file
@@ -1805,7 +1781,7 @@ PREPARE_PYTHON_FILE 'compile_2_trt'
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Started writing code for trt and aoti compilers streamlining'
+      git commit -m 'Mostly done implementing optimized compilation code'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
