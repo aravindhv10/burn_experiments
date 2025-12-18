@@ -58,7 +58,6 @@ def compile_EP_to_AOTI(
         inductor_configs["max_autotune"] = True
     ep = torch.export.load(path_file_input_EP_pt2)
     model = ep.module()
-    model.eval()
     model = model.to(
         device=device,
         dtype=dtype,
