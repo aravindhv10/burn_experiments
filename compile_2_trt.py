@@ -23,11 +23,29 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
     print("Inside the TRT function")
     ep = torch.export.load(path_file_input_EP_pt2)
     model = ep.module()
+    original_shape = list(ep.example_inputs[0][0].size())
     x = [
-        torch.randn(
-            list(ep.example_inputs[0][0].size()),
+        torch_tensorrt.Input(
+            min_shape=[
+                1,
+                original_shape[1],
+                original_shape[2],
+                original_shape[3],
+            ],  # Minimum batch size
+            opt_shape=[
+                8,
+                original_shape[1],
+                original_shape[2],
+                original_shape[3],
+            ],  # Target/Most common batch size
+            max_shape=[
+                32,
+                original_shape[1],
+                original_shape[2],
+                original_shape[3],
+            ],  # Maximum batch size
             dtype=torch.bfloat16,
-            device="cuda",
+            name="x",  # Should match the input name in the graph
         )
     ]
     compile_settings = {

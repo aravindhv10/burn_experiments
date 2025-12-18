@@ -88,17 +88,36 @@
 **** To tensorrt
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.function.py
   def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
-      print('Inside the TRT function')
+      print("Inside the TRT function")
 
       ep = torch.export.load(path_file_input_EP_pt2)
 
       model = ep.module()
 
+      original_shape = list(ep.example_inputs[0][0].size())
+
       x = [
-          torch.randn(
-              list(ep.example_inputs[0][0].size()),
+          torch_tensorrt.Input(
+              min_shape=[
+                  1,
+                  original_shape[1],
+                  original_shape[2],
+                  original_shape[3],
+              ],  # Minimum batch size
+              opt_shape=[
+                  8,
+                  original_shape[1],
+                  original_shape[2],
+                  original_shape[3],
+              ],  # Target/Most common batch size
+              max_shape=[
+                  32,
+                  original_shape[1],
+                  original_shape[2],
+                  original_shape[3],
+              ],  # Maximum batch size
               dtype=torch.bfloat16,
-              device="cuda",
+              name="x",  # Should match the input name in the graph
           )
       ]
 
@@ -118,6 +137,53 @@
           arg_inputs=x,
       )
 #+end_src
+
+import torch
+import torch_tensorrt
+
+def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
+    print("Inside the TRT function")
+    ep = torch.export.load(path_file_input_EP_pt2)
+    model = ep.module()
+    
+    # 1. Get the static dimensions from the exported program
+    # Assuming input shape is (Batch, C, H, W)
+    original_shape = list(ep.example_inputs[0][0].size())
+    c, h, w = original_shape[1], original_shape[2], original_shape[3]
+
+    # 2. Define the Dynamic Input
+    # We set the batch dimension (index 0) to be dynamic
+    input_specs = [
+        torch_tensorrt.Input(
+            min_shape=[1, c, h, w],         # Minimum batch size
+            opt_shape=[8, c, h, w],         # Target/Most common batch size
+            max_shape=[32, c, h, w],        # Maximum batch size
+            dtype=torch.bfloat16,
+            name="x",                       # Should match the input name in the graph
+        )
+    ]
+
+    # 3. Update compile settings
+    compile_settings = {
+        "inputs": input_specs,              # Use the Input specs instead of a raw tensor
+        "enabled_precision": {torch.bfloat16},
+        "ir": "dynamo",
+    }
+
+    # 4. Compile and Save
+    trt_gm = torch_tensorrt.compile(model, **compile_settings)
+    
+    # For AOTI saving with dynamic shapes, we provide a sample input 
+    # within the min/max range for the tracing logic
+    example_input = torch.randn([8, c, h, w], dtype=torch.bfloat16, device="cuda")
+
+    torch_tensorrt.save(
+        trt_gm,
+        file_path=path_file_output_trt_pt2,
+        output_format="aot_inductor",
+        retrace=True,
+        arg_inputs=[example_input], 
+    )
 
 **** To AOT Inductor
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.function.py
@@ -1801,7 +1867,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Fixed more bugs because of silly python issues'
+      git commit -m 'Added dynamic batching with tensorrt'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
