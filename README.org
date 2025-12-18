@@ -192,16 +192,14 @@
 
 * Python file to produce the model file
 
-** Produce the model
-
-*** Add the file to git
+** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   PREPARE_PYTHON_FILE 'main'
 #+end_src
 
-*** Actual file
+** Actual file
 
-**** config the import paths
+*** config the import paths
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.config.py
   import os
 
@@ -216,7 +214,7 @@
   sys.path.append(basepath)
 #+end_src
 
-**** config standard variables
+*** config standard variables
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.config.py
   IMAGE_RESOLUTION = 448
   BATCH_SIZE = 4
@@ -243,7 +241,7 @@
   )
 #+end_src
 
-**** import important libraries
+*** import important libraries
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.import.py
   import os
   import sys
@@ -253,7 +251,7 @@
   from torch.export.dynamic_shapes import Dim
 #+end_src
 
-**** class to define the actual model
+*** class to define the actual model
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.class.py
   class model_wrapper(torch.nn.Module):
       ################################################################
@@ -343,17 +341,15 @@
       ################################################################
 #+end_src
 
-**** function to produce the export
+*** function to produce the export
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
-  def produce_model(path_file_out):
+  def produce_model_ep(path_file_output_model_ep):
       dtype = torch.bfloat16
       model = model_wrapper()
       model.eval()
       with torch.inference_mode():
-          inductor_configs = {}
           if torch.cuda.is_available():
               device = "cuda"
-              inductor_configs["max_autotune"] = True
           else:
               device = "cpu"
 
@@ -361,6 +357,7 @@
           print("dtype = ", dtype)
 
           model = model.to(device=device, dtype=dtype)
+          model = torch.compile(model)
           x = torch.rand(
               INPUT_SHAPE,
               dtype=dtype,
@@ -377,21 +374,25 @@
           }
 
           exported_program = torch.export.export(
-              # model._orig_mod,
-              model,
+              model._orig_mod,
+              # model,
               (x,),
               dynamic_shapes=dynamic_shapes,
               strict=True,
           )
-
-          path = torch._inductor.aoti_compile_and_package(
-              exported_program,
-              package_path=path_file_out,
-              inductor_configs=inductor_configs,
+          torch.export.save(
+              ep=exported_program,
+              f=path_file_output_model_ep,
           )
+
+          # path = torch._inductor.aoti_compile_and_package(
+          #     exported_program,
+          #     package_path=path_file_out,
+          #     inductor_configs=inductor_configs,
+          # )
 #+end_src
 
-**** function to test if it works
+*** COMMENT function to test if it works
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
   def test_model(path_file_in):
       dtype=torch.bfloat16
@@ -417,13 +418,13 @@
       return output
 #+end_src
 
-**** Function wrapper to maintain compatibility
+*** COMMENT Function wrapper to maintain compatibility
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.function.py
   def compile_model_to_aot_inductor(path_file_input, path_file_output):
       produce_model(path_file_out=path_file_output)
 #+end_src
 
-**** COMMENT execute
+*** COMMENT execute
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./main.execute.py
   produce_model(path_file_out=sys.argv[1])
   test_model(path_file_in=sys.argv[1])

@@ -39,20 +39,19 @@ import timm
 import torch
 
 
-def produce_model(path_file_out):
+def produce_model_ep(path_file_output_model_ep):
     dtype = torch.bfloat16
     model = model_wrapper()
     model.eval()
     with torch.inference_mode():
-        inductor_configs = {}
         if torch.cuda.is_available():
             device = "cuda"
-            inductor_configs["max_autotune"] = True
         else:
             device = "cpu"
         print("device = ", device)
         print("dtype = ", dtype)
         model = model.to(device=device, dtype=dtype)
+        model = torch.compile(model)
         x = torch.rand(
             INPUT_SHAPE,
             dtype=dtype,
@@ -67,44 +66,21 @@ def produce_model(path_file_out):
             ),
         }
         exported_program = torch.export.export(
-            # model._orig_mod,
-            model,
+            model._orig_mod,
+            # model,
             (x,),
             dynamic_shapes=dynamic_shapes,
             strict=True,
         )
-        path = torch._inductor.aoti_compile_and_package(
-            exported_program,
-            package_path=path_file_out,
-            inductor_configs=inductor_configs,
+        torch.export.save(
+            ep=exported_program,
+            f=path_file_output_model_ep,
         )
-
-
-def test_model(path_file_in):
-    dtype = torch.bfloat16
-    if torch.cuda.is_available():
-        device = "cuda"
-    else:
-        device = "cpu"
-    model = torch._inductor.aoti_load_package(path_file_in)
-    x = torch.rand(
-        (
-            SIZE_B * 2,
-            SIZE_Y,
-            SIZE_X,
-            SIZE_C,
-        ),
-        dtype=dtype,
-        device=device,
-    )
-    with torch.inference_mode():
-        output = model(x)
-        print(output)
-    return output
-
-
-def compile_model_to_aot_inductor(path_file_input, path_file_output):
-    produce_model(path_file_out=path_file_output)
+        # path = torch._inductor.aoti_compile_and_package(
+        #     exported_program,
+        #     package_path=path_file_out,
+        #     inductor_configs=inductor_configs,
+        # )
 
 
 class model_wrapper(torch.nn.Module):
