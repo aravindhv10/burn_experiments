@@ -518,7 +518,7 @@
       && install --compare  "${CARGO_TARGET_DIR}/release/infer-client" '/usr/bin/infer-client' \
       && echo 'DONE Compiling rust parts' ;
 
-  RUN '/root/source/main.py' '/root/source/model.ckpt'
+  RUN '/root/source/main.py' '/root/source/model.pt2'
 #+end_src
 
 * Scripts to run image
@@ -1803,7 +1803,7 @@
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Removed model.eval in compiling program'
+      git commit -m 'Fixed more bugs'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
