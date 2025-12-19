@@ -93,6 +93,7 @@
       ep = torch.export.load(path_file_input_EP_pt2)
 
       model = ep.module()
+      model.to(device="cuda", dtype=torch.bfloat16)
 
       original_shape = list(ep.example_inputs[0][0].size())
 
@@ -1878,7 +1879,7 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Added dynamic batching with tensorrt'
+      git commit -m 'Fixed device issue in trt model'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")

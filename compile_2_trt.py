@@ -23,6 +23,7 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
     print("Inside the TRT function")
     ep = torch.export.load(path_file_input_EP_pt2)
     model = ep.module()
+    model.to(device="cuda", dtype=torch.bfloat16)
     original_shape = list(ep.example_inputs[0][0].size())
     x = [
         torch_tensorrt.Input(
