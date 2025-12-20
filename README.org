@@ -1118,9 +1118,40 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
 *** Add the file to git
 #+begin_src sh :shebang #!/bin/sh :results output :mkdirp yes :tangle ./.git.sh
   GITADD 'CMakeLists.txt'
+  GITADD 'CMakeLists_trt.txt'
 #+end_src
 
 *** Actual file
+
+**** For torch TRT
+#+begin_src conf :mkdirp yes :tangle ./CMakeLists_trt.txt
+  cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+
+  project(aoti_example VERSION 1.0 DESCRIPTION "Interface for inferring with libtorch exposed to rust")
+
+  find_package(Torch REQUIRED)
+  find_package(OpenCV REQUIRED)
+
+  add_executable(aoti_example src/test.cpp)
+  add_library(mytorch SHARED src/main.cpp)
+
+  target_link_libraries(aoti_example "${TORCH_LIBRARIES}" "${OpenCV_LIBS}" torchtrt_runtime nvinfer nvinfer_plugin)
+  # target_link_libraries(torchtrt_aoti_example "${TORCH_LIBRARIES}" "-Wl,--no-as-needed" torchtrt_runtime "-Wl,--as-needed")
+
+  target_link_libraries(mytorch "${TORCH_LIBRARIES}" "${OpenCV_LIBS}")
+
+  set_property(TARGET aoti_example PROPERTY CXX_STANDARD 17)
+  set_target_properties(mytorch PROPERTIES VERSION ${PROJECT_VERSION} CXX_STANDARD 17)
+
+  install(TARGETS mytorch LIBRARY DESTINATION lib)
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
+  set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O3 -mtune=native -march=native -flto")
+  set(CMAKE_INSTALL_PREFIX "/usr")
+  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+#+end_src
+
+**** The generic cmake file
 #+begin_src conf :mkdirp yes :tangle ./CMakeLists.txt
   cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
@@ -1879,7 +1910,7 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Added cmake sample for trt'
+      git commit -m 'Added separate cmake lists file for trt'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
