@@ -143,7 +143,13 @@ template <> inline auto get_tensor_dtype<float64_t>() {
   return torch::kFloat64;
 }
 
+inline std::string get_model_path() {
+  printf("called get_model_path()\n");
+  return std::string("/model.pt2");
+}
+
 inline torch::TensorOptions get_good_device_and_dtype() {
+  printf("Called get_good_device_and_dtype()\n");
   if (torch::cuda::is_available()) {
     return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
   } else {
@@ -152,6 +158,7 @@ inline torch::TensorOptions get_good_device_and_dtype() {
 }
 
 inline torch::TensorOptions get_host_input_device_and_dtype() {
+  printf("Called get_host_input_device_and_dtype()\n");
   return torch::TensorOptions()
       .dtype(get_tensor_dtype<intype>())
       .device(torch::kCPU);
@@ -180,21 +187,30 @@ private:
 public:
   inline void operator()(arg_input *in, unsigned int const batch_size,
                          arg_output *out) {
+    printf("Inside the inference function\n");
     torch::Tensor cpu_tensor = torch::from_blob(
         static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C},
         options_host_input);
+    printf("Step-1\n");
     inputs[0] = cpu_tensor.to(options_compute);
+    printf("Step-2\n");
     outputs = loader.run(inputs);
+    printf("Step-3\n");
     out_tensor = outputs[0].contiguous().cpu().to(options_host_output);
+    printf("Step-4\n");
     bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
+    printf("Step-5\n");
     std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
+    printf("Step-6\n");
   }
 
   infer_slave()
-      : loader("/model.pt2"), options_compute(get_good_device_and_dtype()),
+      : loader(get_model_path()), options_compute(get_good_device_and_dtype()),
         options_host_input(get_host_input_device_and_dtype()),
         options_host_output(get_host_output_device_and_dtype()) {
+    printf("Started actual constructor\n");
     inputs.resize(1);
+    printf("Done constructing...\n");
   }
 
   ~infer_slave() {}
