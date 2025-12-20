@@ -151,10 +151,10 @@ inline std::string get_model_path() {
 inline torch::TensorOptions get_good_device_and_dtype() {
   printf("Called get_good_device_and_dtype()\n");
   if (torch::cuda::is_available()) {
-    printf("Returning cuda");
+    printf("Returning cuda\n");
     return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
   } else {
-    printf("Returning cpu");
+    printf("Returning cpu\n");
     return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCPU);
   }
 }

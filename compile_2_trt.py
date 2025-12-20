@@ -19,59 +19,83 @@ except:
 import torch
 
 
-def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
-    print("Inside the TRT function")
-    ep = torch.export.load(path_file_input_EP_pt2)
-    model = ep.module()
-    model.to(device="cuda", dtype=torch.bfloat16)
-    original_shape = list(ep.example_inputs[0][0].size())
-    x = [
-        torch_tensorrt.Input(
-            min_shape=[
+def compile_EP_to_tensorrt(
+    path_file_input_EP_pt2,
+    path_file_output_trt_pt2,
+):
+    with torch.no_grad():
+        device = "cuda"
+        exported = torch.export.load(path_file_input_EP_pt2)
+        main_shape = tuple(exported.example_inputs[0][0].size())
+        min_shape = tuple(
+            (
                 1,
-                original_shape[1],
-                original_shape[2],
-                original_shape[3],
-            ],  # Minimum batch size
-            opt_shape=[
-                8,
-                original_shape[1],
-                original_shape[2],
-                original_shape[3],
-            ],  # Target/Most common batch size
-            max_shape=[
-                32,
-                original_shape[1],
-                original_shape[2],
-                original_shape[3],
-            ],  # Maximum batch size
-            dtype=torch.bfloat16,
-            name="x",  # Should match the input name in the graph
+                main_shape[1],
+                main_shape[2],
+                main_shape[3],
+            )
         )
-    ]
-    compile_settings = {
-        "inputs": x,
-        "enabled_precision": {torch.bfloat16},
-        "ir": "dynamo",
-    }
-    trt_gm = torch_tensorrt.compile(model, **compile_settings)
-    example_input = torch.randn(
-        [
-            8,
-            original_shape[1],
-            original_shape[2],
-            original_shape[3],
-        ],
-        dtype=torch.bfloat16,
-        device="cuda",
-    )
-    torch_tensorrt.save(
-        trt_gm,
-        file_path=path_file_output_trt_pt2,
-        output_format="aot_inductor",
-        retrace=True,
-        arg_inputs=[example_input],
-    )
+        opt_shape = tuple(
+            (
+                8,
+                main_shape[1],
+                main_shape[2],
+                main_shape[3],
+            )
+        )
+        max_shape = tuple(
+            (
+                16,
+                main_shape[1],
+                main_shape[2],
+                main_shape[3],
+            )
+        )
+        example_inputs = (
+            torch.randn(
+                opt_shape,
+                device=device,
+                dtype=torch.bfloat16,
+            ),
+        )
+        compile_settings = {
+            "arg_inputs": [
+                torch_tensorrt.Input(
+                    min_shape=(
+                        1,
+                        main_shape[1],
+                        main_shape[2],
+                        main_shape[3],
+                    ),
+                    opt_shape=(
+                        8,
+                        main_shape[1],
+                        main_shape[2],
+                        main_shape[3],
+                    ),
+                    max_shape=(
+                        32,
+                        main_shape[1],
+                        main_shape[2],
+                        main_shape[3],
+                    ),
+                    dtype=torch.bfloat16,
+                )
+            ],
+            "enabled_precisions": {
+                torch.float32,
+                torch.bfloat16,
+            },
+            "min_block_size": 1,
+        }
+        cg_trt_module = torch_tensorrt.dynamo.compile(exported, **compile_settings)
+        torch_tensorrt.save(
+            cg_trt_module,
+            file_path=path_file_output_trt_pt2,
+            output_format="aot_inductor",
+            retrace=True,
+            arg_inputs=example_inputs,
+        )
 
 
 def compile_EP_to_AOTI(

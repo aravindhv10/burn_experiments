@@ -53,6 +53,10 @@
 
 ** Actual python code
 
+
+
+
+
 *** config the import paths
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.config.py
   import os
@@ -85,70 +89,133 @@
 
 *** Function to compile
 
+#+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes
+  compile_EP_to_tensorrt(
+      path_file_input_EP_pt2="/root/source/model.pt2",
+      path_file_output_trt_pt2="/root/model.pt2",
+  )
+#+end_src
+
 **** To tensorrt
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.function.py
-  def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
-      print("Inside the TRT function")
-
-      ep = torch.export.load(path_file_input_EP_pt2)
-
-      model = ep.module()
-      model.to(device="cuda", dtype=torch.bfloat16)
-
-      original_shape = list(ep.example_inputs[0][0].size())
-
-      x = [
-          torch_tensorrt.Input(
-              min_shape=[
+  def compile_EP_to_tensorrt(
+      path_file_input_EP_pt2,
+      path_file_output_trt_pt2,
+  ):
+      with torch.no_grad():
+          device = "cuda"
+          exported = torch.export.load(path_file_input_EP_pt2)
+          main_shape = tuple(exported.example_inputs[0][0].size())
+          min_shape = tuple(
+              (
                   1,
-                  original_shape[1],
-                  original_shape[2],
-                  original_shape[3],
-              ],  # Minimum batch size
-              opt_shape=[
-                  8,
-                  original_shape[1],
-                  original_shape[2],
-                  original_shape[3],
-              ],  # Target/Most common batch size
-              max_shape=[
-                  32,
-                  original_shape[1],
-                  original_shape[2],
-                  original_shape[3],
-              ],  # Maximum batch size
-              dtype=torch.bfloat16,
-              name="x",  # Should match the input name in the graph
+                  main_shape[1],
+                  main_shape[2],
+                  main_shape[3],
+              )
           )
-      ]
-
-      compile_settings = {
-          "inputs": x,
-          "enabled_precision": {torch.bfloat16},
-          "ir": "dynamo",
-      }
-
-      trt_gm = torch_tensorrt.compile(model, **compile_settings)
-
-      example_input = torch.randn(
-          [
-              8,
-              original_shape[1],
-              original_shape[2],
-              original_shape[3],
-          ],
-          dtype=torch.bfloat16,
-          device="cuda",
-      )
-
-      torch_tensorrt.save(
-          trt_gm,
-          file_path=path_file_output_trt_pt2,
-          output_format="aot_inductor",
-          retrace=True,
-          arg_inputs=[example_input],
-      )
+          opt_shape = tuple(
+              (
+                  8,
+                  main_shape[1],
+                  main_shape[2],
+                  main_shape[3],
+              )
+          )
+          max_shape = tuple(
+              (
+                  16,
+                  main_shape[1],
+                  main_shape[2],
+                  main_shape[3],
+              )
+          )
+          example_inputs = (
+              torch.randn(
+                  opt_shape,
+                  device=device,
+                  dtype=torch.bfloat16,
+              ),
+          )
+          compile_settings = {
+              "arg_inputs": [
+                  torch_tensorrt.Input(
+                      min_shape=(
+                          1,
+                          main_shape[1],
+                          main_shape[2],
+                          main_shape[3],
+                      ),
+                      opt_shape=(
+                          8,
+                          main_shape[1],
+                          main_shape[2],
+                          main_shape[3],
+                      ),
+                      max_shape=(
+                          32,
+                          main_shape[1],
+                          main_shape[2],
+                          main_shape[3],
+                      ),
+                      dtype=torch.bfloat16,
+                  )
+              ],
+              "enabled_precisions": {
+                  torch.float32,
+                  torch.bfloat16,
+              },
+              "min_block_size": 1,
+          }
+          cg_trt_module = torch_tensorrt.dynamo.compile(exported, **compile_settings)
+          torch_tensorrt.save(
+              cg_trt_module,
+              file_path=path_file_output_trt_pt2,
+              output_format="aot_inductor",
+              retrace=True,
+              arg_inputs=example_inputs,
+          )
 #+end_src
+
+
+    model = Model().to(device=device)
+    example_inputs = (torch.randn(8, 10, device=device),)
+    batch_dim = torch.export.Dim("batch", min=1, max=1024)
+    # [Optional] Specify the first dimension of the input x as dynamic.
+    exported = torch.export.export(
+        model, example_inputs, dynamic_shapes={"x": {0: batch_dim}}
+    )
+    # [Note] In this example we directly feed the exported module to aoti_compile_and_package.
+    # Depending on your use case, e.g. if your training platform and inference platform
+    # are different, you may choose to save the exported model using torch.export.save and
+    # then load it back using torch.export.load on your inference platform to run AOT compilation.
+    compile_settings = {
+        "arg_inputs": [
+            torch_tensorrt.Input(
+                min_shape=(1, 10),
+                opt_shape=(8, 10),
+                max_shape=(1014, 10),
+                dtype=torch.float32,
+            )
+        ],
+        "enabled_precisions": {torch.float32},
+        "min_block_size": 1,
+    }
+    cg_trt_module = torch_tensorrt.dynamo.compile(exported, **compile_settings)
+    torch_tensorrt.save(
+        cg_trt_module,
+        file_path=os.path.join(os.getcwd(), "model.pt2"),
+        output_format="aot_inductor",
+        retrace=True,
+        arg_inputs=example_inputs,
+    )
+
+    # output_path = torch._inductor.aoti_compile_and_package(
+    #     exported,
+    #     # [Optional] Specify the generated shared library path. If not specified,
+    #     # the generated artifact is stored in your system temp directory.
+    #     package_path=os.path.join(os.getcwd(), "model.pt2"),
+    # )
 
 import torch
 import torch_tensorrt
@@ -1001,10 +1068,10 @@ def compile_EP_to_tensorrt(path_file_input_EP_pt2, path_file_output_trt_pt2):
   inline torch::TensorOptions get_good_device_and_dtype() {
     printf("Called get_good_device_and_dtype()\n");
     if (torch::cuda::is_available()) {
-      printf("Returning cuda");
+      printf("Returning cuda\n");
       return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCUDA);
     } else {
-      printf("Returning cpu");
+      printf("Returning cpu\n");
       return torch::TensorOptions().dtype(torch::kBFloat16).device(torch::kCPU);
     }
   }
@@ -1935,7 +2002,7 @@ fd 'torchtrt_runtime\.so|nvinfer\.so|nvinfer_plugin\.so' ~/venv -x cp {} /lib/
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Added debugging to c code for trt'
+      git commit -m 'more trt debugging'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
