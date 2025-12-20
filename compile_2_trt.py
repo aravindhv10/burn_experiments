@@ -139,7 +139,4 @@ def compile_EP_2_optimized_targer(
 
 
 if __name__ == "__main__":
-    compile_EP_to_AOTI(
-        path_file_input_EP_pt2=sys.argv[1],
-        path_file_output_compiled_pt2=sys.argv[2],
-    )
+    compile_EP_to_AOTI(sys.argv[1], sys.argv[2])
