@@ -74,7 +74,7 @@ def compile_EP_to_tensorrt(
             cg_trt_module,
             file_path=path_file_output_trt_pt2,
             output_format="aot_inductor",
-            retrace=False,
+            retrace=True,
             arg_inputs=example_inputs,
         )
 
@@ -139,7 +139,7 @@ def compile_EP_2_optimized_targer(
 
 
 if __name__ == "__main__":
-    compile_EP_2_optimized_targer(
+    compile_EP_to_AOTI(
         path_file_input_EP_pt2=sys.argv[1],
         path_file_output_compiled_pt2=sys.argv[2],
     )

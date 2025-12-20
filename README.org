@@ -155,7 +155,7 @@
               cg_trt_module,
               file_path=path_file_output_trt_pt2,
               output_format="aot_inductor",
-              retrace=False,
+              retrace=True,
               arg_inputs=example_inputs,
           )
 #+end_src
@@ -235,7 +235,7 @@
 *** Call the right compilation functions
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.execute.py
   if __name__ == "__main__":
-      compile_EP_2_optimized_targer(
+      compile_EP_to_AOTI(
           path_file_input_EP_pt2=sys.argv[1],
           path_file_output_compiled_pt2=sys.argv[2],
       )
@@ -1898,7 +1898,7 @@ fd 'torchtrt_runtime\.so|nvinfer\.so|nvinfer_plugin\.so' ~/venv -x cp {} /lib/
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'more trt debugging'
+      git commit -m 'trt compilex SUX'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
