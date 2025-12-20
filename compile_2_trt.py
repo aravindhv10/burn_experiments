@@ -61,31 +61,13 @@ def compile_EP_to_tensorrt(
         compile_settings = {
             "arg_inputs": [
                 torch_tensorrt.Input(
-                    min_shape=(
-                        1,
-                        main_shape[1],
-                        main_shape[2],
-                        main_shape[3],
-                    ),
-                    opt_shape=(
-                        8,
-                        main_shape[1],
-                        main_shape[2],
-                        main_shape[3],
-                    ),
-                    max_shape=(
-                        32,
-                        main_shape[1],
-                        main_shape[2],
-                        main_shape[3],
-                    ),
+                    min_shape=min_shape,
+                    opt_shape=opt_shape,
+                    max_shape=max_shape,
                     dtype=torch.bfloat16,
                 )
             ],
-            "enabled_precisions": {
-                torch.float32,
-                torch.bfloat16,
-            },
+            "enabled_precisions": {torch.bfloat16},
             "min_block_size": 1,
         }
         cg_trt_module = torch_tensorrt.dynamo.compile(exported, **compile_settings)
