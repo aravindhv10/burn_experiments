@@ -53,10 +53,6 @@
 
 ** Actual python code
 
-
-
-
-
 *** config the import paths
 #+begin_src python :shebang #!/usr/bin/env python3 :results output :mkdirp yes :tangle ./compile_2_trt.config.py
   import os
@@ -120,7 +116,7 @@
 
           example_inputs = (
               torch.randn(
-                  main_shape,
+                  opt_shape,
                   device=device,
                   dtype=dtype,
               ),
@@ -136,7 +132,7 @@
           exported = torch.export.export(
               model,
               example_inputs,
-              dynamic_shapes={"x": {0: batch_dim}},
+              dynamic_shapes=({0: batch_dim},),
           )
           # [Note] In this example we directly feed the exported module to aoti_compile_and_package.
           # Depending on your use case, e.g. if your training platform and inference platform
@@ -159,7 +155,7 @@
               cg_trt_module,
               file_path=path_file_output_trt_pt2,
               output_format="aot_inductor",
-              retrace=True,
+              retrace=False,
               arg_inputs=example_inputs,
           )
 #+end_src

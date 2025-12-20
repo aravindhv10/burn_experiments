@@ -37,7 +37,7 @@ def compile_EP_to_tensorrt(
         max_shape = tuple([32] + [main_shape[i] for i in range(1, len(main_shape))])
         example_inputs = (
             torch.randn(
-                main_shape,
+                opt_shape,
                 device=device,
                 dtype=dtype,
             ),
@@ -51,7 +51,7 @@ def compile_EP_to_tensorrt(
         exported = torch.export.export(
             model,
             example_inputs,
-            dynamic_shapes={"x": {0: batch_dim}},
+            dynamic_shapes=({0: batch_dim},),
         )
         # [Note] In this example we directly feed the exported module to aoti_compile_and_package.
         # Depending on your use case, e.g. if your training platform and inference platform
@@ -74,7 +74,7 @@ def compile_EP_to_tensorrt(
             cg_trt_module,
             file_path=path_file_output_trt_pt2,
             output_format="aot_inductor",
-            retrace=True,
+            retrace=False,
             arg_inputs=example_inputs,
         )
 
