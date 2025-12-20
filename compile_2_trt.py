@@ -32,30 +32,9 @@ def compile_EP_to_tensorrt(
             dtype=dtype,
         )
         main_shape = tuple(EP.example_inputs[0][0].size())
-        min_shape = tuple(
-            (
-                1,
-                main_shape[1],
-                main_shape[2],
-                main_shape[3],
-            )
-        )
-        opt_shape = tuple(
-            (
-                8,
-                main_shape[1],
-                main_shape[2],
-                main_shape[3],
-            )
-        )
-        max_shape = tuple(
-            (
-                32,
-                main_shape[1],
-                main_shape[2],
-                main_shape[3],
-            )
-        )
+        min_shape = tuple([1] + [main_shape[i] for i in range(1, len(main_shape))])
+        opt_shape = tuple([8] + [main_shape[i] for i in range(1, len(main_shape))])
+        max_shape = tuple([32] + [main_shape[i] for i in range(1, len(main_shape))])
         example_inputs = (
             torch.randn(
                 main_shape,
