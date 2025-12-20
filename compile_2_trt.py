@@ -23,10 +23,15 @@ def compile_EP_to_tensorrt(
     path_file_input_EP_pt2,
     path_file_output_trt_pt2,
 ):
+    device = "cuda"
+    dtype = torch.bfloat16
     with torch.no_grad():
-        device = "cuda"
-        exported = torch.export.load(path_file_input_EP_pt2)
-        main_shape = tuple(exported.example_inputs[0][0].size())
+        EP = torch.export.load(path_file_input_EP_pt2)
+        model = EP.module().to(
+            device=device,
+            dtype=dtype,
+        )
+        main_shape = tuple(EP.example_inputs[0][0].size())
         min_shape = tuple(
             (
                 1,
@@ -45,7 +50,7 @@ def compile_EP_to_tensorrt(
         )
         max_shape = tuple(
             (
-                16,
+                32,
                 main_shape[1],
                 main_shape[2],
                 main_shape[3],
@@ -53,21 +58,36 @@ def compile_EP_to_tensorrt(
         )
         example_inputs = (
             torch.randn(
-                opt_shape,
+                main_shape,
                 device=device,
-                dtype=torch.bfloat16,
+                dtype=dtype,
             ),
         )
+        batch_dim = torch.export.Dim(
+            "batch",
+            min=1,
+            max=32,
+        )
+        # [Optional] Specify the first dimension of the input x as dynamic.
+        exported = torch.export.export(
+            model,
+            example_inputs,
+            dynamic_shapes={"x": {0: batch_dim}},
+        )
+        # [Note] In this example we directly feed the exported module to aoti_compile_and_package.
+        # Depending on your use case, e.g. if your training platform and inference platform
+        # are different, you may choose to save the exported model using torch.export.save and
+        # then load it back using torch.export.load on your inference platform to run AOT compilation.
         compile_settings = {
             "arg_inputs": [
                 torch_tensorrt.Input(
                     min_shape=min_shape,
                     opt_shape=opt_shape,
                     max_shape=max_shape,
-                    dtype=torch.bfloat16,
+                    dtype=dtype,
                 )
             ],
-            "enabled_precisions": {torch.bfloat16},
+            "enabled_precisions": {dtype},
             "min_block_size": 1,
         }
         cg_trt_module = torch_tensorrt.dynamo.compile(exported, **compile_settings)
