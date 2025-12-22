@@ -189,21 +189,14 @@ private:
 public:
   inline void operator()(arg_input *in, unsigned int const batch_size,
                          arg_output *out) {
-    printf("Inside the inference function\n");
     torch::Tensor cpu_tensor = torch::from_blob(
         static_cast<void *>(in), {batch_size, SIZE_Y, SIZE_X, SIZE_C},
         options_host_input);
-    printf("Step-1\n");
     inputs[0] = cpu_tensor.to(options_compute);
-    printf("Step-2\n");
     outputs = loader.run(inputs);
-    printf("Step-3\n");
     out_tensor = outputs[0].contiguous().cpu().to(options_host_output);
-    printf("Step-4\n");
     bytes_to_copy = batch_size * SIZE_O * sizeof(outtype);
-    printf("Step-5\n");
     std::memcpy(out, out_tensor.data_ptr<outtype>(), bytes_to_copy);
-    printf("Step-6\n");
   }
 
   infer_slave()
