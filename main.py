@@ -57,14 +57,17 @@ def produce_model_ep(path_file_output_model_ep):
             dtype=dtype,
             device=device,
         )
-        dynamic_shapes = {
-            "x": (
-                Dim.DYNAMIC,
-                Dim.STATIC,
-                Dim.STATIC,
-                Dim.STATIC,
-            ),
-        }
+        shape_nature = [torch.export.dynamic_shapes.Dim.STATIC] * len(INPUT_SHAPE)
+        shape_nature[0] = torch.export.dynamic_shapes.Dim.DYNAMIC
+        dynamic_shapes = {"x": tuple(shape_nature)}
+        # dynamic_shapes = {
+        #     "x": (
+        #         Dim.DYNAMIC,
+        #         Dim.STATIC,
+        #         Dim.STATIC,
+        #         Dim.STATIC,
+        #     ),
+        # }
         exported_program = torch.export.export(
             model._orig_mod,
             # model,
@@ -76,11 +79,6 @@ def produce_model_ep(path_file_output_model_ep):
             ep=exported_program,
             f=path_file_output_model_ep,
         )
-        # path = torch._inductor.aoti_compile_and_package(
-        #     exported_program,
-        #     package_path=path_file_out,
-        #     inductor_configs=inductor_configs,
-        # )
 
 
 class model_wrapper(torch.nn.Module):

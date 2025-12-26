@@ -412,14 +412,18 @@
               device=device,
           )
 
-          dynamic_shapes = {
-              "x": (
-                  Dim.DYNAMIC,
-                  Dim.STATIC,
-                  Dim.STATIC,
-                  Dim.STATIC,
-              ),
-          }
+          shape_nature = [torch.export.dynamic_shapes.Dim.STATIC] * len(INPUT_SHAPE)
+          shape_nature[0] = torch.export.dynamic_shapes.Dim.DYNAMIC
+          dynamic_shapes = {"x": tuple(shape_nature)}
+
+          # dynamic_shapes = {
+          #     "x": (
+          #         Dim.DYNAMIC,
+          #         Dim.STATIC,
+          #         Dim.STATIC,
+          #         Dim.STATIC,
+          #     ),
+          # }
 
           exported_program = torch.export.export(
               model._orig_mod,
@@ -428,16 +432,11 @@
               dynamic_shapes=dynamic_shapes,
               strict=True,
           )
+
           torch.export.save(
               ep=exported_program,
               f=path_file_output_model_ep,
           )
-
-          # path = torch._inductor.aoti_compile_and_package(
-          #     exported_program,
-          #     package_path=path_file_out,
-          #     inductor_configs=inductor_configs,
-          # )
 #+end_src
 
 *** COMMENT function to test if it works
@@ -1895,7 +1894,7 @@ fd 'torchtrt_runtime\.so|nvinfer\.so|nvinfer_plugin\.so' ~/venv -x cp {} /lib/
   (org-babel-tangle)
   (async-shell-command "
       './.git.sh'
-      git commit -m 'Added compile_2_trt to docker build hash checkint'
+      git commit -m 'Refined method to produce ep model'
       $HOME/SSH/KEYS/PERSONAL_LAPTOP_PERSONAL_GITHUB/setup.sh
       git push
   " "log" "err")
