@@ -97,18 +97,21 @@ def compile_EP_to_AOTI(
         dtype=dtype,
     )
     x = torch.randn(
-        list(ep.example_inputs[0][0].size()),
+        tuple(ep.example_inputs[0][0].size()),
         dtype=dtype,
         device=device,
     )
-    dynamic_shapes = {
-        "x": (
-            torch.export.dynamic_shapes.Dim.DYNAMIC,
-            torch.export.dynamic_shapes.Dim.STATIC,
-            torch.export.dynamic_shapes.Dim.STATIC,
-            torch.export.dynamic_shapes.Dim.STATIC,
-        ),
-    }
+    shape_nature = [torch.export.dynamic_shapes.Dim.STATIC] * len(x.size())
+    shape_nature[0] = torch.export.dynamic_shapes.Dim.DYNAMIC
+    dynamic_shapes = {"x": tuple(shape_nature)}
+    # dynamic_shapes = {
+    #     "x": (
+    #             torch.export.dynamic_shapes.Dim.DYNAMIC,
+    #             torch.export.dynamic_shapes.Dim.STATIC,
+    #             torch.export.dynamic_shapes.Dim.STATIC,
+    #             torch.export.dynamic_shapes.Dim.STATIC,
+    #     ),
+    # }
     exported_program = torch.export.export(
         model,
         (x,),
