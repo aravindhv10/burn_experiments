@@ -84,34 +84,27 @@ def compile_EP_to_AOTI(
     path_file_output_AOTI_pt2,
 ):
     print("Inside the AOTI function")
-    device = "cpu"
     dtype = torch.bfloat16
+    device = "cpu"
     inductor_configs = {}
     if torch.cuda.is_available():
         device = "cuda"
         inductor_configs["max_autotune"] = True
     ep = torch.export.load(path_file_input_EP_pt2)
+    INPUT_SHAPE = tuple(ep.example_inputs[0][0].size())
     model = ep.module()
     model = model.to(
         device=device,
         dtype=dtype,
     )
     x = torch.randn(
-        tuple(ep.example_inputs[0][0].size()),
+        INPUT_SHAPE,
         dtype=dtype,
         device=device,
     )
-    shape_nature = [torch.export.dynamic_shapes.Dim.STATIC] * len(x.size())
+    shape_nature = [torch.export.dynamic_shapes.Dim.STATIC] * len(INPUT_SHAPE)
     shape_nature[0] = torch.export.dynamic_shapes.Dim.DYNAMIC
     dynamic_shapes = {"x": tuple(shape_nature)}
-    # dynamic_shapes = {
-    #     "x": (
-    #             torch.export.dynamic_shapes.Dim.DYNAMIC,
-    #             torch.export.dynamic_shapes.Dim.STATIC,
-    #             torch.export.dynamic_shapes.Dim.STATIC,
-    #             torch.export.dynamic_shapes.Dim.STATIC,
-    #     ),
-    # }
     exported_program = torch.export.export(
         model,
         (x,),
