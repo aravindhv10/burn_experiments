@@ -23,21 +23,20 @@ inline cv::Mat process_image_data(unsigned char *binary_data, int data_size) {
     ar = float(width) / float(height);
     target_width = int(float(IMAGE_RESOLUTION) * ar);
     x_start = static_cast<unsigned int>(target_width - IMAGE_RESOLUTION) >> 1;
-  } else {
+  } else if (width < height) {
     ar = float(height) / float(width);
     target_height = int(float(IMAGE_RESOLUTION) * ar);
     y_start = static_cast<unsigned int>(target_height - IMAGE_RESOLUTION) >> 1;
   }
 
   cv::Mat resized_img;
+
   if ((height > IMAGE_RESOLUTION) && (width > IMAGE_RESOLUTION)) {
     cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height),
                0, 0, cv::INTER_AREA);
-
   } else {
     cv::resize(decoded_img, resized_img, cv::Size(target_width, target_height),
                0, 0, cv::INTER_LANCZOS4);
-
   }
 
   cv::Rect roi(x_start, y_start, IMAGE_RESOLUTION, IMAGE_RESOLUTION);
